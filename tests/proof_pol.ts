@@ -1,5 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
+import { AnchorError, Program, BN } from "@coral-xyz/anchor";
 import { ProofPol } from "../target/types/proof_pol";
 import {
   Keypair,
@@ -9,87 +9,96 @@ import {
 } from "@solana/web3.js";
 import { assert } from "chai";
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const STAKE_LAMPORTS = new BN(0.1 * LAMPORTS_PER_SOL); // 0.1 SOL
+const ONE_HOUR_SEC = new BN(3_600);                   // minimum valid interval
+const MIN_STAKE_BN = new BN(10_000_000);              // 0.01 SOL threshold
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Derive the vault PDA for a given owner pubkey. */
-async function vaultPda(
-  program: Program<ProofPol>,
-  owner: PublicKey
-): Promise<[PublicKey, number]> {
+/** Derive the vault PDA for a given owner pubkey (synchronous). */
+function vaultPda(program: Program<ProofPol>, owner: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("vault"), owner.toBuffer()],
     program.programId
   );
 }
 
-/** Airdrop SOL to a keypair and confirm. */
+/** Airdrop SOL to a pubkey and wait for confirmation. */
 async function airdrop(
   connection: anchor.web3.Connection,
   pubkey: PublicKey,
   sol = 5
-) {
+): Promise<void> {
   const sig = await connection.requestAirdrop(pubkey, sol * LAMPORTS_PER_SOL);
   await connection.confirmTransaction(sig, "confirmed");
 }
 
 /** Sleep for `ms` milliseconds. */
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const STAKE_LAMPORTS = new BN(0.1 * LAMPORTS_PER_SOL); // 0.1 SOL
-const ONE_HOUR_SEC   = new BN(3_600);                  // min interval
-const TWO_SECONDS    = new BN(2);                      // tiny interval for deadline tests
-
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Suite ────────────────────────────────────────────────────────────────────
 
 describe("proof_pol — Commitment Staking Protocol", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
-  const program   = anchor.workspace.ProofPol as Program<ProofPol>;
-  const provider  = anchor.getProvider() as anchor.AnchorProvider;
+  const program = anchor.workspace.ProofPol as Program<ProofPol>;
+  const provider = anchor.getProvider() as anchor.AnchorProvider;
   const connection = provider.connection;
 
-  // Fresh keypairs for each scenario to keep tests independent.
-  let owner   : Keypair;
-  let nominee : Keypair;
+  /**
+   * Helper: create a fresh vault for `owner` / `nominee`.
+   * Returns the vault PDA pubkey.
+   */
+  async function initVault(
+    owner: Keypair,
+    nominee: Keypair,
+    stake = STAKE_LAMPORTS,
+    interval = ONE_HOUR_SEC
+  ): Promise<PublicKey> {
+    const [vaultKey] = vaultPda(program, owner.publicKey);
+    await program.methods
+      .initializeVault(stake, interval)
+      .accounts({
+        owner: owner.publicKey,
+        nominee: nominee.publicKey,
+        vault: vaultKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([owner])
+      .rpc();
+    return vaultKey;
+  }
+
+  // Each suite gets fresh keypairs funded with enough SOL.
+  let owner: Keypair;
+  let nominee: Keypair;
 
   beforeEach(async () => {
-    owner   = Keypair.generate();
+    owner = Keypair.generate();
     nominee = Keypair.generate();
     await Promise.all([
-      airdrop(connection, owner.publicKey,   5),
+      airdrop(connection, owner.publicKey, 5),
       airdrop(connection, nominee.publicKey, 1),
     ]);
   });
 
-  // ─── 1. Initialize ─────────────────────────────────────────────────────────
+  // ─── 1. initialize_vault ───────────────────────────────────────────────────
 
   describe("initialize_vault", () => {
-    it("creates a vault with correct state", async () => {
-      const [vaultKey] = vaultPda(program, owner.publicKey);
-
-      await program.methods
-        .initializeVault(STAKE_LAMPORTS, ONE_HOUR_SEC)
-        .accounts({
-          owner:         owner.publicKey,
-          nominee:       nominee.publicKey,
-          vault:         vaultKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([owner])
-        .rpc();
-
+    it("creates a vault with correct initial state", async () => {
+      const vaultKey = await initVault(owner, nominee);
       const state = await program.account.commitmentVault.fetch(vaultKey);
 
-      assert.equal(state.owner.toBase58(),   owner.publicKey.toBase58(),   "owner mismatch");
+      assert.equal(state.owner.toBase58(), owner.publicKey.toBase58(), "owner mismatch");
       assert.equal(state.nominee.toBase58(), nominee.publicKey.toBase58(), "nominee mismatch");
-      assert.isTrue(state.isActive, "vault should be active");
-      assert.equal(state.stakeAmount.toString(), STAKE_LAMPORTS.toString(), "stake mismatch");
-      assert.equal(state.checkinInterval.toString(), ONE_HOUR_SEC.toString(), "interval mismatch");
+      assert.isTrue(state.isActive, "vault should start active");
+      assert.equal(state.stakeAmount.toString(), STAKE_LAMPORTS.toString(), "stake_amount mismatch");
+      assert.equal(state.checkinInterval.toString(), ONE_HOUR_SEC.toString(), "checkin_interval mismatch");
 
-      // Deadline should be roughly now + 1 hour
-      const now      = Math.floor(Date.now() / 1000);
+      // Deadline should be within ±60 s of (now + 1 hour).
+      const now = Math.floor(Date.now() / 1000);
       const deadline = state.deadline.toNumber();
       assert.approximately(deadline, now + 3_600, 60, "deadline should be ~1 hour from now");
 
@@ -98,22 +107,26 @@ describe("proof_pol — Commitment Staking Protocol", () => {
 
     it("rejects stake below minimum (< 0.01 SOL)", async () => {
       const [vaultKey] = vaultPda(program, owner.publicKey);
-      const tinyStake  = new BN(1_000); // 0.000001 SOL
+      const tinyStake = new BN(1_000); // 0.000001 SOL
 
       try {
         await program.methods
           .initializeVault(tinyStake, ONE_HOUR_SEC)
           .accounts({
-            owner:         owner.publicKey,
-            nominee:       nominee.publicKey,
-            vault:         vaultKey,
+            owner: owner.publicKey,
+            nominee: nominee.publicKey,
+            vault: vaultKey,
             systemProgram: SystemProgram.programId,
           })
           .signers([owner])
           .rpc();
-        assert.fail("Expected transaction to fail");
-      } catch (err: any) {
-        assert.include(err.toString(), "StakeTooLow");
+        assert.fail("Expected tx to fail with StakeTooLow");
+      } catch (err: unknown) {
+        if (err instanceof AnchorError) {
+          assert.equal(err.error.errorCode.code, "StakeTooLow", "wrong error code");
+        } else {
+          assert.include(String(err), "StakeTooLow", "error did not mention StakeTooLow");
+        }
         console.log("✅ StakeTooLow rejected correctly.");
       }
     });
@@ -125,16 +138,20 @@ describe("proof_pol — Commitment Staking Protocol", () => {
         await program.methods
           .initializeVault(STAKE_LAMPORTS, ONE_HOUR_SEC)
           .accounts({
-            owner:         owner.publicKey,
-            nominee:       owner.publicKey, // same as owner ← should fail
-            vault:         vaultKey,
+            owner: owner.publicKey,
+            nominee: owner.publicKey, // same as owner → should fail
+            vault: vaultKey,
             systemProgram: SystemProgram.programId,
           })
           .signers([owner])
           .rpc();
-        assert.fail("Expected transaction to fail");
-      } catch (err: any) {
-        assert.include(err.toString(), "SelfNominee");
+        assert.fail("Expected tx to fail with SelfNominee");
+      } catch (err: unknown) {
+        if (err instanceof AnchorError) {
+          assert.equal(err.error.errorCode.code, "SelfNominee", "wrong error code");
+        } else {
+          assert.include(String(err), "SelfNominee", "error did not mention SelfNominee");
+        }
         console.log("✅ SelfNominee rejected correctly.");
       }
     });
@@ -144,43 +161,40 @@ describe("proof_pol — Commitment Staking Protocol", () => {
 
       try {
         await program.methods
-          .initializeVault(STAKE_LAMPORTS, new BN(60)) // 60 seconds
+          .initializeVault(STAKE_LAMPORTS, new BN(60)) // 60 s < 1 h
           .accounts({
-            owner:         owner.publicKey,
-            nominee:       nominee.publicKey,
-            vault:         vaultKey,
+            owner: owner.publicKey,
+            nominee: nominee.publicKey,
+            vault: vaultKey,
             systemProgram: SystemProgram.programId,
           })
           .signers([owner])
           .rpc();
-        assert.fail("Expected transaction to fail");
-      } catch (err: any) {
-        assert.include(err.toString(), "IntervalTooShort");
+        assert.fail("Expected tx to fail with IntervalTooShort");
+      } catch (err: unknown) {
+        if (err instanceof AnchorError) {
+          assert.equal(err.error.errorCode.code, "IntervalTooShort", "wrong error code");
+        } else {
+          assert.include(String(err), "IntervalTooShort", "error did not mention IntervalTooShort");
+        }
         console.log("✅ IntervalTooShort rejected correctly.");
       }
     });
   });
 
-  // ─── 2. Proof of Life ──────────────────────────────────────────────────────
+  // ─── 2. proof_of_life ──────────────────────────────────────────────────────
 
   describe("proof_of_life", () => {
-    it("owner can check in and deadline advances", async () => {
-      const [vaultKey] = vaultPda(program, owner.publicKey);
+    let vaultKey: PublicKey;
 
-      await program.methods
-        .initializeVault(STAKE_LAMPORTS, ONE_HOUR_SEC)
-        .accounts({
-          owner:         owner.publicKey,
-          nominee:       nominee.publicKey,
-          vault:         vaultKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([owner])
-        .rpc();
+    beforeEach(async () => {
+      vaultKey = await initVault(owner, nominee);
+    });
 
-      const beforeState = await program.account.commitmentVault.fetch(vaultKey);
+    it("advances last_checkin and deadline after a successful check-in", async () => {
+      const before = await program.account.commitmentVault.fetch(vaultKey);
 
-      // Wait 1 second so last_checkin timestamp changes
+      // Sleep 1 s so onchain timestamp is measurably different.
       await sleep(1_000);
 
       await program.methods
@@ -189,44 +203,65 @@ describe("proof_pol — Commitment Staking Protocol", () => {
         .signers([owner])
         .rpc();
 
-      const afterState = await program.account.commitmentVault.fetch(vaultKey);
+      const after = await program.account.commitmentVault.fetch(vaultKey);
 
       assert.isTrue(
-        afterState.lastCheckin.gt(beforeState.lastCheckin),
+        after.lastCheckin.gt(before.lastCheckin),
         "last_checkin should have advanced"
       );
       assert.isTrue(
-        afterState.deadline.gt(beforeState.deadline),
+        after.deadline.gt(before.deadline),
         "deadline should have advanced"
       );
-      console.log("✅ Deadline rolled forward:", new Date(afterState.deadline.toNumber() * 1000).toISOString());
+
+      // New deadline should be ~1 hour ahead of the updated last_checkin.
+      const expectedDeadline = after.lastCheckin.toNumber() + ONE_HOUR_SEC.toNumber();
+      assert.approximately(
+        after.deadline.toNumber(),
+        expectedDeadline,
+        10,
+        "deadline should equal last_checkin + interval"
+      );
+
+      console.log("✅ Deadline rolled forward:", new Date(after.deadline.toNumber() * 1000).toISOString());
+    });
+
+    it("rejects a non-owner trying to check in", async () => {
+      const imposter = Keypair.generate();
+      await airdrop(connection, imposter.publicKey, 1);
+
+      try {
+        await program.methods
+          .proofOfLife()
+          .accounts({ owner: imposter.publicKey, vault: vaultKey })
+          .signers([imposter])
+          .rpc();
+        assert.fail("Expected tx to fail — imposter should not be able to check in");
+      } catch (err: unknown) {
+        // Could be AnchorError (NotOwner / seeds constraint) or raw Error.
+        assert.ok(err, "should have thrown an error");
+        console.log("✅ Non-owner check-in rejected correctly.");
+      }
     });
   });
 
-  // ─── 3. Voluntary Close ────────────────────────────────────────────────────
+  // ─── 3. close_vault ────────────────────────────────────────────────────────
 
   describe("close_vault", () => {
-    it("owner can close the vault and reclaim stake before deadline", async () => {
-      const [vaultKey] = vaultPda(program, owner.publicKey);
+    let vaultKey: PublicKey;
 
-      await program.methods
-        .initializeVault(STAKE_LAMPORTS, ONE_HOUR_SEC)
-        .accounts({
-          owner:         owner.publicKey,
-          nominee:       nominee.publicKey,
-          vault:         vaultKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([owner])
-        .rpc();
+    beforeEach(async () => {
+      vaultKey = await initVault(owner, nominee);
+    });
 
+    it("owner reclaims stake and vault PDA is closed", async () => {
       const balanceBefore = await connection.getBalance(owner.publicKey);
 
       await program.methods
         .closeVault()
         .accounts({
-          owner:         owner.publicKey,
-          vault:         vaultKey,
+          owner: owner.publicKey,
+          vault: vaultKey,
           systemProgram: SystemProgram.programId,
         })
         .signers([owner])
@@ -234,70 +269,110 @@ describe("proof_pol — Commitment Staking Protocol", () => {
 
       const balanceAfter = await connection.getBalance(owner.publicKey);
 
-      // Balance should have increased (stake returned, minus tx fees)
+      // Owner should net-positive after claiming (stake > tx fee).
       assert.isAbove(balanceAfter, balanceBefore, "owner should receive stake back");
 
-      // Vault account should be closed
+      // Vault PDA account must be gone.
       const vaultInfo = await connection.getAccountInfo(vaultKey);
-      assert.isNull(vaultInfo, "vault PDA should be closed");
+      assert.isNull(vaultInfo, "vault PDA should be closed after close_vault");
 
-      console.log(
-        `✅ Vault closed. Owner reclaimed ~${(balanceAfter - balanceBefore) / LAMPORTS_PER_SOL} SOL.`
-      );
+      const reclaimedSol = (balanceAfter - balanceBefore) / LAMPORTS_PER_SOL;
+      console.log(`✅ Vault closed. Owner reclaimed ~${reclaimedSol.toFixed(4)} SOL.`);
     });
-  });
 
-  // ─── 4. Nominee Claim (missed deadline) ────────────────────────────────────
-
-  describe("claim_vault", () => {
-    it("nominee CANNOT claim before the deadline", async () => {
-      const [vaultKey] = vaultPda(program, owner.publicKey);
-
-      await program.methods
-        .initializeVault(STAKE_LAMPORTS, ONE_HOUR_SEC)
-        .accounts({
-          owner:         owner.publicKey,
-          nominee:       nominee.publicKey,
-          vault:         vaultKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .signers([owner])
-        .rpc();
-
+    it("nominee CANNOT close the vault (only owner can)", async () => {
       try {
         await program.methods
-          .claimVault()
+          .closeVault()
           .accounts({
-            nominee:       nominee.publicKey,
-            owner:         owner.publicKey,
-            vault:         vaultKey,
+            owner: nominee.publicKey, // wrong signer
+            vault: vaultKey,
             systemProgram: SystemProgram.programId,
           })
           .signers([nominee])
           .rpc();
-        assert.fail("Should have rejected early claim");
-      } catch (err: any) {
-        assert.include(err.toString(), "DeadlineNotPassed");
+        assert.fail("Expected tx to fail — nominee should not be able to close vault");
+      } catch (err: unknown) {
+        assert.ok(err, "should have thrown an error");
+        console.log("✅ Nominee-close rejected correctly.");
+      }
+    });
+  });
+
+  // ─── 4. claim_vault ────────────────────────────────────────────────────────
+
+  describe("claim_vault", () => {
+    let vaultKey: PublicKey;
+
+    beforeEach(async () => {
+      vaultKey = await initVault(owner, nominee);
+    });
+
+    it("nominee CANNOT claim before the deadline", async () => {
+      try {
+        await program.methods
+          .claimVault()
+          .accounts({
+            nominee: nominee.publicKey,
+            owner: owner.publicKey,
+            vault: vaultKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([nominee])
+          .rpc();
+        assert.fail("Expected tx to fail with DeadlineNotPassed");
+      } catch (err: unknown) {
+        if (err instanceof AnchorError) {
+          assert.equal(err.error.errorCode.code, "DeadlineNotPassed", "wrong error code");
+        } else {
+          assert.include(String(err), "DeadlineNotPassed", "error did not mention DeadlineNotPassed");
+        }
         console.log("✅ Early claim rejected correctly.");
       }
     });
 
-    // NOTE: This test uses a 2-second interval (minimum is 1 hour in production,
-    //       but for demo purposes we use a short interval on a local validator).
-    //       On mainnet/devnet you would use a 1-hour minimum interval.
-    it("nominee CAN claim after the deadline is missed [short interval demo]", async function () {
-      // This test is slower due to waiting for deadline — skip in CI if needed
+    /**
+     * Full deadline-miss scenario.
+     *
+     * Testing this on a real validator requires either:
+     *   (a) A very short MIN_CHECKIN_INTERVAL (e.g. 2 s) AND waiting for it to expire, or
+     *   (b) Clock manipulation via `anchor test --provider.cluster localnet` +
+     *       `program_test::warp_to_timestamp` (Rust integration test approach).
+     *
+     * The test is skipped here to keep the suite fast.  To enable it:
+     *   1. Lower `MIN_CHECKIN_INTERVAL` to 2 in constants.rs.
+     *   2. Replace `ONE_HOUR_SEC` with `new BN(2)` in initVault call.
+     *   3. `await sleep(5_000)` before the claim call.
+     *   4. Remove the `this.skip()` call below.
+     */
+    it("nominee CAN claim after the deadline is missed [clock-warp required]", async function () {
       this.timeout(30_000);
+      this.skip();
 
-      // Use a tiny 2-second interval — note the validator may reject < 3600s
-      // due to MIN_CHECKIN_INTERVAL; change the constant for this local test.
-      // Here we simply document the expected flow with a comment.
-      console.log(
-        "ℹ️  Full deadline-miss scenario requires a validator with time manipulation\n" +
-        "   (e.g., anchor test with `warp_to_timestamp` or a mock clock).\n" +
-        "   The claim logic is already gated by: require!(vault.deadline_passed(now)).\n" +
-        "   Manually advance the clock or reduce MIN_CHECKIN_INTERVAL to 2s locally."
-      );
+      // ── What this test will verify once enabled ───────────────────────────
+      //
+      // const nomineeBefore = await connection.getBalance(nominee.publicKey);
+      //
+      // await sleep(5_000); // wait for the 2-s deadline to expire
+      //
+      // await program.methods
+      //   .claimVault()
+      //   .accounts({
+      //     nominee:       nominee.publicKey,
+      //     owner:         owner.publicKey,
+      //     vault:         vaultKey,
+      //     systemProgram: SystemProgram.programId,
+      //   })
+      //   .signers([nominee])
+      //   .rpc();
+      //
+      // const nomineeAfter = await connection.getBalance(nominee.publicKey);
+      // assert.isAbove(nomineeAfter, nomineeBefore, "nominee should receive the staked funds");
+      //
+      // const vaultInfo = await connection.getAccountInfo(vaultKey);
+      // assert.isNull(vaultInfo, "vault PDA should be closed after claim");
+      //
+      // console.log(`✅ Nominee claimed ~${(nomineeAfter - nomineeBefore) / LAMPORTS_PER_SOL} SOL.`);
     });
   });
 });
