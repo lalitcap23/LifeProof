@@ -4,7 +4,7 @@ use crate::constants::VAULT_SEED;
 use crate::error::ErrorCode;
 use crate::state::CommitmentVault;
 
-// ─── Accounts ────────────────────────────────────────────────────────────────
+//  Accounts 
 
 #[derive(Accounts)]
 pub struct CloseVault<'info> {
@@ -25,7 +25,7 @@ pub struct CloseVault<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// ─── Handler ─────────────────────────────────────────────────────────────────
+//  Handler
 
 /// The owner voluntarily closes the vault and retrieves their staked SOL.
 ///

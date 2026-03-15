@@ -11,7 +11,7 @@ pub use state::*;
 
 declare_id!("aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e");
 
-// ─────────────────────────────────────────────────────────────────────────────
+
 //  Commitment Staking Protocol — "Proof of Life"
 //
 //  Architecture
@@ -46,7 +46,6 @@ declare_id!("aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e");
 //  close_vault()
 //    Owner voluntarily exits while still in good standing.
 //    Vault PDA is closed; all lamports returned to owner.
-// ─────────────────────────────────────────────────────────────────────────────
 
 #[program]
 pub mod proof_pol {

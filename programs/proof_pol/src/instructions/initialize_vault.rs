@@ -5,15 +5,11 @@ use crate::constants::*;
 use crate::error::ErrorCode;
 use crate::state::CommitmentVault;
 
-// ─── Accounts ────────────────────────────────────────────────────────────────
-
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
-    /// The user who creates and controls this vault.
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    /// The accountability wallet.  Stored in vault state; does NOT need to sign here.
     /// CHECK: We validate nominee != owner in the handler; no further constraint needed.
     pub nominee: UncheckedAccount<'info>,
 
@@ -30,10 +26,8 @@ pub struct InitializeVault<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// ─── Handler ─────────────────────────────────────────────────────────────────
 
 /// Initialise a new commitment vault.
-///
 /// # Parameters
 /// * `stake_lamports`    – Amount of SOL (in lamports) to lock in the vault.
 /// * `checkin_interval`  – Seconds between required proof-of-life sign-ins.
@@ -46,7 +40,7 @@ pub fn handler(
     let owner_key = ctx.accounts.owner.key();
     let nominee_key = ctx.accounts.nominee.key();
 
-    // ── Validation ────────────────────────────────────────────────────────────
+    // Validation 
 
     require!(owner_key != nominee_key, ErrorCode::SelfNominee);
     require!(stake_lamports >= MIN_STAKE_LAMPORTS, ErrorCode::StakeTooLow);
@@ -60,7 +54,7 @@ pub fn handler(
     require!(interval >= MIN_CHECKIN_INTERVAL, ErrorCode::IntervalTooShort);
     require!(interval <= MAX_CHECKIN_INTERVAL, ErrorCode::IntervalTooLong);
 
-    // ── Transfer stake into the vault PDA ────────────────────────────────────
+    // Transfer stake into the vault PDA 
 
     let cpi_ctx = CpiContext::new(
         ctx.accounts.system_program.to_account_info(),
@@ -71,7 +65,7 @@ pub fn handler(
     );
     system_program::transfer(cpi_ctx, stake_lamports)?;
 
-    // ── Record state ─────────────────────────────────────────────────────────
+    // Record state 
 
     let clock = Clock::get()?;
     let now   = clock.unix_timestamp;

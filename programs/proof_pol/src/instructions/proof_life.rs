@@ -4,8 +4,7 @@ use crate::constants::VAULT_SEED;
 use crate::error::ErrorCode;
 use crate::state::CommitmentVault;
 
-// ─── Accounts ────────────────────────────────────────────────────────────────
-
+//  Accounts 
 #[derive(Accounts)]
 pub struct ProofOfLife<'info> {
     /// The vault owner — must sign to prove they are alive.
@@ -22,7 +21,7 @@ pub struct ProofOfLife<'info> {
     pub vault: Account<'info, CommitmentVault>,
 }
 
-// ─── Handler ─────────────────────────────────────────────────────────────────
+//  Handler
 
 /// The owner signs this transaction to prove they are alive.
 ///
@@ -42,8 +41,8 @@ pub fn handler(ctx: Context<ProofOfLife>) -> Result<()> {
     // the nominee may now claim.
     require!(!vault.deadline_passed(now), ErrorCode::DeadlineAlreadyPassed);
 
-    // ── Roll the deadline forward ─────────────────────────────────────────────
-
+    // Roll the deadline forward
+    
     let new_deadline = now
         .checked_add(vault.checkin_interval as i64)
         .ok_or(ErrorCode::Overflow)?;

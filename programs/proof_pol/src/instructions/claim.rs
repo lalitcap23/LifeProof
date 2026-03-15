@@ -4,11 +4,9 @@ use crate::constants::VAULT_SEED;
 use crate::error::ErrorCode;
 use crate::state::CommitmentVault;
 
-// ─── Accounts ────────────────────────────────────────────────────────────────
 
 #[derive(Accounts)]
 pub struct ClaimVault<'info> {
-    /// The nominee who is claiming the forfeited stake.
     #[account(mut)]
     pub nominee: Signer<'info>,
 
@@ -28,6 +26,7 @@ pub struct ClaimVault<'info> {
 
     pub system_program: Program<'info, System>,
 }
+
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
