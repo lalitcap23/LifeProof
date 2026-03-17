@@ -4,7 +4,6 @@ use crate::constants::VAULT_SEED;
 use crate::error::ErrorCode;
 use crate::state::CommitmentVault;
 
-//  Accounts 
 #[derive(Accounts)]
 pub struct ProofOfLife<'info> {
     /// The vault owner — must sign to prove they are alive.

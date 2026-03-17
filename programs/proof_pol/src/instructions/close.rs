@@ -7,7 +7,6 @@ use crate::state::CommitmentVault;
 
 #[derive(Accounts)]
 pub struct CloseVault<'info> {
-    /// The vault owner reclaims their stake.
     #[account(mut)]
     pub owner: Signer<'info>,
 
@@ -36,7 +35,11 @@ pub struct CloseVault<'info> {
 ///   * The deadline has already passed (nominee's claim window is open).
 pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
     let vault = &ctx.accounts.vault;
-
+    
+    require!(
+        vault.stake_amount == 0,
+        ErrorCode:: VaultNotEmpty
+    );
     require!(vault.is_active, ErrorCode::VaultInactive);
 
     let clock = Clock::get()?;
@@ -44,6 +47,7 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
 
     // If the deadline has passed the owner can no longer self-close; the
     // nominee must claim.
+    
     require!(!vault.deadline_passed(now), ErrorCode::DeadlineAlreadyPassed);
 
     msg!(

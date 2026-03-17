@@ -59,3 +59,4 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
 
     Ok(())
 }
+ 

@@ -2,8 +2,9 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum ErrorCode {
+    #[msg("the vault is not empty")]
+    VaultNotEmpty,
     // ── Vault lifecycle ──────────────────────────────────────────────────────
-
     /// Vault has already been initialized for this owner.
     #[msg("A commitment vault already exists for this owner.")]
     VaultAlreadyExists,
