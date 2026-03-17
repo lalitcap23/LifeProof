@@ -3,9 +3,10 @@ use anchor_lang::prelude::*;
 /// PDA seed for the vault account.
 pub const VAULT_SEED: &[u8] = b"vault";
 
-/// Minimum stake: 0.01 SOL (10_000_000 lamports).
+/// Minimum stake amount in raw token units.
+/// For a token with 6 decimals this equals 10 tokens.
 /// Prevents spam / dust vaults.
-pub const MIN_STAKE_LAMPORTS: u64 = 10_000_000;
+pub const MIN_STAKE_AMOUNT: u64 = 10_000_000;
 
 /// Default check-in interval: 24 hours in seconds.
 pub const DEFAULT_CHECKIN_INTERVAL: u64 = 86_400;

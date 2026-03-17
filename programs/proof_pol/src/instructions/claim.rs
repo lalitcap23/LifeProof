@@ -28,7 +28,6 @@ pub struct ClaimVault<'info> {
 }
 
 
-// ─── Handler ─────────────────────────────────────────────────────────────────
 
 /// The nominee calls this to claim the staked SOL after the deadline is missed.
 ///

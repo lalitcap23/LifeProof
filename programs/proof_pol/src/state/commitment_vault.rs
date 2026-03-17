@@ -5,17 +5,18 @@ use anchor_lang::prelude::*;
 /// Seeds: [b"vault", owner.key().as_ref()]
 ///
 /// Layout (approximate byte budget):
-///   discriminator  8
-///   owner         32
-///   nominee       32
-///   stake_amount   8  (lamports, informational – actual lamports live in the account)
+///   discriminator    8
+///   owner           32
+///   nominee         32
+///   mint            32  ← SPL token mint being staked
+///   stake_amount     8  (raw token units – informational snapshot)
 ///   checkin_interval 8  (seconds between required check-ins)
-///   last_checkin    8  (Unix timestamp of last proof-of-life tx)
-///   deadline        8  (Unix timestamp after which nominee can claim)
-///   is_active       1  (vault is live; false after close or claim)
-///   bump            1
-///   _padding        6
-/// Total ≈ 112 bytes (rounded up via INIT_SPACE)
+///   last_checkin     8  (Unix timestamp of last proof-of-life tx)
+///   deadline         8  (Unix timestamp after which nominee can claim)
+///   is_active        1  (vault is live; false after close or claim)
+///   bump             1
+///   _padding         6
+/// Total ≈ 144 bytes (auto-calculated via INIT_SPACE)
 #[account]
 #[derive(InitSpace)]
 pub struct CommitmentVault {
@@ -25,7 +26,12 @@ pub struct CommitmentVault {
     /// The wallet that can claim funds if the deadline is missed.
     pub nominee: Pubkey,
 
-    /// Lamports locked at initialization (informational snapshot).
+    /// The SPL token mint that was staked into this vault.
+    /// Used to validate the correct token accounts are passed on claim/close.
+    pub mint: Pubkey,
+
+    /// Raw token units locked at initialization (informational snapshot).
+    /// Actual tokens live in the vault's Associated Token Account (ATA).
     pub stake_amount: u64,
 
     /// How often (in seconds) the owner must check in.

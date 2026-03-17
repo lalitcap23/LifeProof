@@ -4,7 +4,6 @@ use crate::constants::VAULT_SEED;
 use crate::error::ErrorCode;
 use crate::state::CommitmentVault;
 
-//  Accounts 
 
 #[derive(Accounts)]
 pub struct CloseVault<'info> {
@@ -25,7 +24,6 @@ pub struct CloseVault<'info> {
     pub system_program: Program<'info, System>,
 }
 
-//  Handler
 
 /// The owner voluntarily closes the vault and retrieves their staked SOL.
 ///
@@ -54,6 +52,5 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
         vault.stake_amount,
     );
 
-    // `close = owner` in the account struct handles lamport transfer.
     Ok(())
 }

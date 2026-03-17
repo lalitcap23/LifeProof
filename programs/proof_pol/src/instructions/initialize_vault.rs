@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{transfer, Mint, Token, TokenAccount, Transfer},
+};
 
 use crate::constants::*;
 use crate::error::ErrorCode;
@@ -7,13 +10,14 @@ use crate::state::CommitmentVault;
 
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
+
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    /// CHECK: We validate nominee != owner in the handler; no further constraint needed.
+    /// CHECK: validated against owner in the handle (SelfNominee guard).
     pub nominee: UncheckedAccount<'info>,
 
-    /// PDA vault account.  Funded by `owner` via lamport transfer.
+    /// PDA vault state account — created and rent-funded by `owner`.
     #[account(
         init,
         payer  = owner,
@@ -23,27 +27,47 @@ pub struct InitializeVault<'info> {
     )]
     pub vault: Account<'info, CommitmentVault>,
 
-    pub system_program: Program<'info, System>,
+    /// Any valid SPL mint is accepted; no hard-coded mint restriction.
+    
+    pub mint: Account<'info, Mint>,
+    /// Anchor validates: correct mint + correct owner authority.
+    #[account(
+        mut,
+        associated_token::mint      = mint,
+        associated_token::authority = owner,
+    )]
+    pub owner_ata: Account<'info, TokenAccount>,
+
+    /// Vault's Associated Token Account — holds staked tokens for the vault's lifetime.
+    /// The vault PDA is the sole authority, so only the program can move tokens out.
+    /// `init` (not `init_if_needed`) because the vault PDA is always brand-new here.
+    #[account(
+        init,
+        payer                       = owner,
+        associated_token::mint      = mint,
+        associated_token::authority = vault,
+    )]
+    pub vault_ata: Account<'info, TokenAccount>,
+
+    pub token_program:            Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program:           Program<'info, System>,
 }
 
 
-/// Initialise a new commitment vault.
-/// # Parameters
-/// * `stake_lamports`    – Amount of SOL (in lamports) to lock in the vault.
-/// * `checkin_interval`  – Seconds between required proof-of-life sign-ins.
-///                         Pass `0` to use the default (24 hours).
+/// * `stake_amount`     – Raw SPL token units to lock (minimum `MIN_STAKE_AMOUNT`).
+/// * `checkin_interval` – Seconds between required proof-of-life sign-ins.
+///                        Pass `0` to use the 24-hour default.
 pub fn handler(
     ctx: Context<InitializeVault>,
-    stake_lamports: u64,
+    stake_amount: u64,
     checkin_interval: u64,
 ) -> Result<()> {
-    let owner_key = ctx.accounts.owner.key();
+    let owner_key   = ctx.accounts.owner.key();
     let nominee_key = ctx.accounts.nominee.key();
 
-    // Validation 
-
-    require!(owner_key != nominee_key, ErrorCode::SelfNominee);
-    require!(stake_lamports >= MIN_STAKE_LAMPORTS, ErrorCode::StakeTooLow);
+    require!(owner_key != nominee_key,         ErrorCode::SelfNominee);
+    require!(stake_amount >= MIN_STAKE_AMOUNT, ErrorCode::StakeTooLow);
 
     let interval = if checkin_interval == 0 {
         DEFAULT_CHECKIN_INTERVAL
@@ -53,42 +77,44 @@ pub fn handler(
 
     require!(interval >= MIN_CHECKIN_INTERVAL, ErrorCode::IntervalTooShort);
     require!(interval <= MAX_CHECKIN_INTERVAL, ErrorCode::IntervalTooLong);
+    // The owner signs directly; no PDA seeds needed for the outbound transfer.
 
-    // Transfer stake into the vault PDA 
+    transfer(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from:      ctx.accounts.owner_ata.to_account_info(),
+                to:        ctx.accounts.vault_ata.to_account_info(),
+                authority: ctx.accounts.owner.to_account_info(),
+            },
+        ),
+        stake_amount,
+    )?;
 
-    let cpi_ctx = CpiContext::new(
-        ctx.accounts.system_program.to_account_info(),
-        system_program::Transfer {
-            from: ctx.accounts.owner.to_account_info(),
-            to:   ctx.accounts.vault.to_account_info(),
-        },
-    );
-    system_program::transfer(cpi_ctx, stake_lamports)?;
 
-    // Record state 
-
-    let clock = Clock::get()?;
-    let now   = clock.unix_timestamp;
-
+    let clock    = Clock::get()?;
+    let now      = clock.unix_timestamp;
     let deadline = now
         .checked_add(interval as i64)
         .ok_or(ErrorCode::Overflow)?;
 
-    let vault        = &mut ctx.accounts.vault;
-    vault.owner           = owner_key;
-    vault.nominee         = nominee_key;
-    vault.stake_amount    = stake_lamports;
-    vault.checkin_interval= interval;
-    vault.last_checkin    = now;
-    vault.deadline        = deadline;
-    vault.is_active       = true;
-    vault.bump            = ctx.bumps.vault;
+    let vault              = &mut ctx.accounts.vault;
+    vault.owner            = owner_key;
+    vault.nominee          = nominee_key;
+    vault.mint             = ctx.accounts.mint.key();
+    vault.stake_amount     = stake_amount;
+    vault.checkin_interval = interval;
+    vault.last_checkin     = now;
+    vault.deadline         = deadline;
+    vault.is_active        = true;
+    vault.bump             = ctx.bumps.vault;
 
     msg!(
-        "Vault initialized: owner={}, nominee={}, stake={} lamports, interval={}s, deadline={}",
+        "Vault initialized: owner={}, nominee={}, mint={}, stake={} tokens, interval={}s, deadline={}",
         owner_key,
         nominee_key,
-        stake_lamports,
+        ctx.accounts.mint.key(),
+        stake_amount,
         interval,
         deadline,
     );

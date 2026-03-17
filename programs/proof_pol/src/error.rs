@@ -15,7 +15,7 @@ pub enum ErrorCode {
     // ── Stake / amount validation ────────────────────────────────────────────
 
     /// Stake is below the minimum threshold.
-    #[msg("Stake amount is below the minimum required (0.01 SOL).")]
+    #[msg("Stake amount is below the minimum required (10_000_000 raw token units).")]
     StakeTooLow,
 
     // ── Interval validation ──────────────────────────────────────────────────
