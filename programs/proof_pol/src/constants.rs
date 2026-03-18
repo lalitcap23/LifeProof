@@ -1,5 +1,3 @@
-use anchor_lang::prelude::*;
-
 /// PDA seed for the vault account.
 pub const VAULT_SEED: &[u8] = b"vault";
 

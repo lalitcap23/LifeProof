@@ -11,7 +11,6 @@ pub use state::*;
 
 declare_id!("aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e");
 
-
 //  Commitment Staking Protocol — "Proof of Life"
 //
 //  Architecture
@@ -54,14 +53,14 @@ pub mod proof_pol {
     /// Create and fund a new commitment vault.
     ///
     /// # Arguments
-    /// * `stake_lamports`   – SOL to lock (minimum 0.01 SOL).
+    /// * `stake_amount`     – Raw SPL token units to lock (minimum MIN_STAKE_AMOUNT).
     /// * `checkin_interval` – Seconds between required sign-ins (0 = 24 h default).
     pub fn initialize_vault(
         ctx: Context<InitializeVault>,
-        stake_lamports: u64,
+        stake_amount: u64,
         checkin_interval: u64,
     ) -> Result<()> {
-        initialize_vault::handler(ctx, stake_lamports, checkin_interval)
+        initialize_vault::handler(ctx, stake_amount, checkin_interval)
     }
 
     /// Submit proof-of-life to reset the deadline.
