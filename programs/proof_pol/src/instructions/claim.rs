@@ -88,7 +88,6 @@ pub struct ClaimVault<'info> {
 /// Nominee claims the staked tokens after the owner misses their check-in deadline.
 ///
 /// Loopholes closed
-/// ────────────────
 ///  1. vault_ata authority = vault PDA only — nominee cannot bypass this program
 ///     by calling SPL Token directly.
 ///  2. `has_one = owner` on vault — explicitly verifies vault.owner == owner.key()

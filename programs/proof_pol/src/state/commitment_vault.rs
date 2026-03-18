@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-
 /// The on-chain state account for a single commitment vault.
 ///
 /// Seeds: [b"vault", owner.key().as_ref()]
