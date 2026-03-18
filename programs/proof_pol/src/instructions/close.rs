@@ -89,11 +89,9 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
         ErrorCode::DeadlineAlreadyPassed
     );
 
-    // ── Build vault PDA signer seeds ─────────────────────────────────────────
-    //
+    // Build vault PDA signer seeds
     // Seeds must exactly match those used in `initialize_vault`:
     //   [b"vault", owner_pubkey_bytes, bump_byte]
-    //
     // We copy `bump` into a local byte array so its lifetime outlives the
     // `seeds` slice — avoids a "temporary value dropped while borrowed" error.
 
@@ -105,7 +103,7 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
     // Snapshot the token balance before any CPI modifies the account.
     let token_amount = ctx.accounts.vault_ata.amount;
 
-    // ── CPI 1 — transfer tokens: vault ATA → owner ATA ───────────────────────
+    // CPI 1 transfer tokens: vault ATA → owner ATA
 
     transfer(
         CpiContext::new_with_signer(
@@ -120,7 +118,7 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
         token_amount,
     )?;
 
-    // ── CPI 2 — close vault ATA: rent-lamports returned to owner ─────────────
+    //  CPI 2 close vault ATA: rent-lamports returned to owner
 
     close_account(CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info(),
