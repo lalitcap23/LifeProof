@@ -12,25 +12,32 @@ use crate::state::CommitmentVault;
 #[derive(Accounts)]
 pub struct ClaimVault<'info> {
     /// The nominee who is claiming the forfeited stake.
-    /// Must match the pubkey stored inside the vault.
+    /// Must match the pubkey stored inside the vault (`has_one = nominee`).
     #[account(mut)]
     pub nominee: Signer<'info>,
 
     /// The original vault owner — used only for PDA seed derivation.
-    /// No signing required; ownership is enforced by the seeds constraint.
-    /// CHECK: only used as a seed component to derive the vault PDA.
+    /// No signing required; ownership is verified by `has_one = owner` below,
+    /// which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
+    ///
+    /// LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
+    /// as `owner` and, if seeds still resolve, bypass the stored-owner check.
+    /// CHECK: address verified via seeds derivation AND `has_one = owner` on vault.
     pub owner: UncheckedAccount<'info>,
 
     /// The vault PDA state account.
     ///
-    /// `has_one = nominee` — rejects any signer that is not the stored nominee.
-    /// `has_one = mint`    — ensures the correct token mint account is passed.
-    /// `close   = nominee` — Anchor transfers vault-state rent to nominee
-    ///                       automatically once the handler returns.
+    /// `seeds + bump`     — derives and verifies the PDA address.
+    /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
+    /// `has_one = nominee`— rejects any signer that is not the stored nominee.
+    /// `has_one = mint`   — ensures the correct token mint account is passed.
+    /// `close   = nominee`— Anchor transfers vault-state rent to nominee
+    ///automatically once the handler returns successfully.
     #[account(
         mut,
         seeds   = [VAULT_SEED, owner.key().as_ref()],
         bump    = vault.bump,
+        has_one = owner   @ ErrorCode::NotOwner,
         has_one = nominee @ ErrorCode::NotNominee,
         has_one = mint,
         close   = nominee,
@@ -42,8 +49,13 @@ pub struct ClaimVault<'info> {
     pub mint: Account<'info, Mint>,
 
     /// Nominee's Associated Token Account — receives the staked tokens.
-    /// `init_if_needed` handles the common case where the nominee has never
-    /// held this token before and therefore has no ATA yet.
+    ///
+    /// LOOPHOLE-3 FIX: `init_if_needed` with explicit `associated_token::mint`
+    /// and `associated_token::authority` constraints forces Anchor to validate
+    /// the existing account's mint and owner fields even when the account
+    /// already exists (i.e. it does NOT silently skip validation).
+    /// A second layer of defence is applied in the handler itself via explicit
+    /// runtime `require!` checks on nominee_ata.mint and nominee_ata.owner.
     #[account(
         init_if_needed,
         payer                       = nominee,
@@ -53,8 +65,14 @@ pub struct ClaimVault<'info> {
     pub nominee_ata: Account<'info, TokenAccount>,
 
     /// Vault's Associated Token Account — holds the staked tokens.
-    /// Anchor validates the address matches (vault PDA, mint).
-    /// The vault PDA is the sole authority; only PDA-signed CPIs can move tokens.
+    ///
+    /// LOOPHOLE-1 FIX: `associated_token::authority = vault` means the vault
+    /// PDA is the SOLE authority over this ATA.  The nominee (or anyone else)
+    /// cannot call `spl_token::transfer` or `spl_token::close_account` directly
+    /// on this account — they would need the vault PDA to sign, which is only
+    /// possible through this program.  Setting authority = nominee here would
+    /// allow the nominee to bypass the deadline check entirely by calling the
+    /// SPL Token program directly.
     #[account(
         mut,
         associated_token::mint      = mint,
@@ -67,43 +85,75 @@ pub struct ClaimVault<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// ─── Handler ─────────────────────────────────────────────────────────────────
-
 /// Nominee claims the staked tokens after the owner misses their check-in deadline.
 ///
-/// Steps executed:
-///   1. Guard: vault must still be marked active.
-///   2. Guard: current on-chain clock must be past the stored deadline.
-///   3. CPI → SPL Token: transfer all tokens from vault ATA → nominee ATA
-///              (vault PDA signs via stored bump seed).
-///   4. CPI → SPL Token: close the now-empty vault ATA; rent goes to nominee
-///              (vault PDA signs via stored bump seed).
-///   5. Anchor closes the vault PDA state account via `close = nominee`
-///              constraint (vault-state rent also flows to nominee).
+/// Loopholes closed
+/// ────────────────
+///  1. vault_ata authority = vault PDA only — nominee cannot bypass this program
+///     by calling SPL Token directly.
+///  2. `has_one = owner` on vault — explicitly verifies vault.owner == owner.key()
+///     on top of the seeds derivation, closing the UncheckedAccount ambiguity.
+///  3. Runtime `require!` checks on nominee_ata.mint and nominee_ata.owner —
+///     defence-in-depth on top of Anchor's ATA constraint validation.
+///  4. `vault.is_active` is explicitly set to `false` before the handler returns,
+///     ensuring the flag reflects reality even in edge cases where the account
+///     close is somehow deferred.
+///  5. `require!(vault_ata.amount > 0)` — rejects a claim on an already-empty
+///     vault ATA so the nominee cannot grief the owner by closing a zero-balance
+///     vault and claiming the rent without any tokens being present.
 ///
-/// Reverts if:
-///   * The vault is not active.
-///   * The deadline has NOT yet passed (owner is still in time).
-///   * The signer is not the stored nominee (`has_one = nominee`).
-///   * The wrong mint account is passed (`has_one = mint`).
+/// Execution steps
+/// ───────────────
+///   1. Guard: vault must be active.
+///   2. Guard: current on-chain clock must be strictly past the stored deadline.
+///   3. Guard: vault ATA must hold more than 0 tokens.           [LOOPHOLE-5]
+///   4. Runtime ATA sanity checks on nominee_ata.                [LOOPHOLE-3]
+///   5. Build vault PDA signer seeds.
+///   6. CPI → SPL Token: transfer tokens vault ATA → nominee ATA (PDA signs).
+///   7. CPI → SPL Token: close vault ATA; rent goes to nominee   (PDA signs).
+///   8. Explicitly mark vault.is_active = false.                 [LOOPHOLE-4]
+///   9. Anchor closes vault PDA state via `close = nominee` on handler exit.
 pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
-    // ── Guards ────────────────────────────────────────────────────────────────
+    // vault must be active ────────────────────────────────────────
 
     require!(ctx.accounts.vault.is_active, ErrorCode::VaultInactive);
 
+    // deadline must have passed 
     let now = Clock::get()?.unix_timestamp;
     require!(
         ctx.accounts.vault.deadline_passed(now),
         ErrorCode::DeadlineNotPassed
     );
 
-    // ── Build vault PDA signer seeds ─────────────────────────────────────────
+    //  vault ATA must not be empty [LOOPHOLE-5] 
     //
-    // Seeds must exactly match those used at initialization:
-    //   [b"vault", owner_pubkey_bytes, bump_byte]
+    // Prevents a nominee from claiming a vault whose ATA was already drained
+    // (e.g., due to a bug elsewhere) and only obtaining the rent lamports.
+
+    require!(ctx.accounts.vault_ata.amount > 0, ErrorCode::VaultEmpty);
+
+    //  runtime nominee ATA sanity checks [LOOPHOLE-3]
     //
-    // `bump_bytes` and `owner_key` are stored as named locals so their
-    // lifetimes outlive the `vault_seeds` slice — avoids a
+    // Anchor's `associated_token::` constraints already validate these fields
+    // at the account-loading stage.  These `require!` calls are a second,
+    // explicit layer of defence-in-depth inside the handler itself, ensuring
+    // that even if a constraint bug or future refactor weakens the struct-level
+    // checks, the handler will still reject a mismatched ATA.
+
+    require!(
+        ctx.accounts.nominee_ata.mint == ctx.accounts.mint.key(),
+        ErrorCode::NomineeAtaMintMismatch
+    );
+    require!(
+        ctx.accounts.nominee_ata.owner == ctx.accounts.nominee.key(),
+        ErrorCode::NomineeAtaOwnerMismatch
+    );
+
+    // build vault PDA signer seeds
+    //
+    // Seeds: [b"vault", owner_pubkey_bytes, bump_byte]
+    // Both `bump_bytes` and `owner_key` are named stack locals so their
+    // lifetimes outlive the `vault_seeds` slice — avoids the
     // "temporary value dropped while borrowed" compile error.
 
     let bump_bytes = [ctx.accounts.vault.bump];
@@ -111,13 +161,15 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
     let vault_seeds: &[&[u8]] = &[VAULT_SEED, owner_key.as_ref(), &bump_bytes];
     let signer = &[vault_seeds];
 
-    // Snapshot the token balance before any CPI modifies the account data.
+    // Snapshot the balance before any CPI can modify the ATA.
     let token_amount = ctx.accounts.vault_ata.amount;
 
-    // ── CPI 1 — transfer tokens: vault ATA → nominee ATA ─────────────────────
+    //CPI: transfer tokens vault ATA → nominee ATA
     //
-    // The vault PDA (not the nominee!) is the authority on vault_ata.
-    // We pass `signer` so the runtime accepts the PDA as a valid signer.
+    // The vault PDA is the authority on vault_ata (LOOPHOLE-1).
+    // `CpiContext::new_with_signer` supplies the PDA seeds so the runtime
+    // accepts the PDA as a valid signer for this call.
+    // The nominee wallet has NO direct authority over vault_ata at any point.
 
     transfer(
         CpiContext::new_with_signer(
@@ -132,11 +184,11 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
         token_amount,
     )?;
 
-    // ── CPI 2 — close vault ATA: rent-lamports returned to nominee ────────────
+    // CPI: close vault ATA; rent → nominee
     //
-    // After the transfer the vault ATA holds 0 tokens.
-    // `close_account` zeroes it out and sends its rent-exempt balance to nominee.
-    // Again the vault PDA must sign because it is the ATA's authority.
+    // The vault ATA now holds 0 tokens.  `close_account` zeroes the account
+    // and sends its rent-exempt reserve to the nominee.
+    // The vault PDA must sign here too because it is still the ATA's authority.
 
     close_account(CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info(),
@@ -148,6 +200,17 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
         signer,
     ))?;
 
+    //  explicitly mark vault inactive [LOOPHOLE-4]
+    //
+    // Anchor's `close = nominee` constraint will zero the account data on exit,
+    // but we set is_active = false explicitly here so that the flag accurately
+    // reflects state for the remainder of this stack frame and for any off-chain
+    // tools that may snapshot account data mid-instruction.
+    // This is set AFTER all CPIs so that the vault AccountInfo is no longer
+    // needed as a CPI authority — avoiding any borrow conflicts.
+
+    ctx.accounts.vault.is_active = false;
+
     msg!(
         "claim_vault: nominee={} claimed {} token units | mint={} | owner={} | deadline was {}",
         ctx.accounts.nominee.key(),
@@ -157,9 +220,10 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
         ctx.accounts.vault.deadline,
     );
 
-    // ── Step 5 — vault PDA state ──────────────────────────────────────────────
-    // Closed automatically by the `close = nominee` constraint on the vault
-    // account once this handler returns cleanly.
+    //  vault PDA state closed by Anchor
+    // The `close = nominee` constraint transfers all remaining lamports from
+    // the vault PDA state account to the nominee and zeroes the account data
+    // automatically when this handler returns Ok(()).
 
     Ok(())
 }
