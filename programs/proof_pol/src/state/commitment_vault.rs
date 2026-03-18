@@ -1,6 +1,4 @@
 use anchor_lang::prelude::*;
-/// The on-chain state account for a single commitment vault.
-///
 /// Seeds: [b"vault", owner.key().as_ref()]
 ///
 /// Layout (approximate byte budget):
@@ -19,10 +17,8 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct CommitmentVault {
-    /// The wallet that created this vault (the "committer").
     pub owner: Pubkey,
 
-    /// The wallet that can claim funds if the deadline is missed.
     pub nominee: Pubkey,
 
     /// The SPL token mint that was staked into this vault.
@@ -30,11 +26,10 @@ pub struct CommitmentVault {
     pub mint: Pubkey,
 
     /// Raw token units locked at initialization (informational snapshot).
-    /// Actual tokens live in the vault's Associated Token Account (ATA).
+    /// Actual tokens live in the vault's Associ ated Token Account (ATA).
     pub stake_amount: u64,
 
-    /// How often (in seconds) the owner must check in.
-    /// e.g. 86_400 = once every 24 hours.
+     /// How often (in seconds) the owner must check in.
     pub checkin_interval: u64,
 
     /// Unix timestamp of the most recent successful proof-of-life.
@@ -44,10 +39,8 @@ pub struct CommitmentVault {
     /// Recalculated as `last_checkin + checkin_interval` on every proof-of-life.
     pub deadline: i64,
 
-    /// True while the vault is operational.
     pub is_active: bool,
 
-    /// PDA bump seed for the vault account.
     pub bump: u8,
 }
 
