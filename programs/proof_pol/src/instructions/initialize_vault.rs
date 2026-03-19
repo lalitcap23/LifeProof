@@ -49,6 +49,25 @@ pub struct InitializeVault<'info> {
     )]
     pub vault_ata: Account<'info, TokenAccount>,
 
+    pub usdc_mint: Account<'info, Mint>, 
+
+    #[account(
+        mut,
+        associated_token::mint      = usdc_mint,
+        associated_token::authority = owner,
+    )]
+    pub owner_usdc_ata: Account<'info, TokenAccount>,
+
+    #[account(address = PLATFORM_WALLET)]
+    pub platform_wallet: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        associated_token::mint      = usdc_mint,
+        associated_token::authority = platform_wallet,
+    )]
+    pub platform_usdc_ata: Account<'info, TokenAccount>,
+
     pub token_program:            Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program:           Program<'info, System>,
@@ -77,8 +96,20 @@ pub fn handler(
 
     require!(interval >= MIN_CHECKIN_INTERVAL, ErrorCode::IntervalTooShort);
     require!(interval <= MAX_CHECKIN_INTERVAL, ErrorCode::IntervalTooLong);
-    // The owner signs directly; no PDA seeds needed for the outbound transfer.
+    // Transfer the 1 USDC platform fee
+    transfer(
+        CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from:      ctx.accounts.owner_usdc_ata.to_account_info(),
+                to:        ctx.accounts.platform_usdc_ata.to_account_info(),
+                authority: ctx.accounts.owner.to_account_info(),
+            },
+        ),
+        PLATFORM_FEE_USDC,
+    )?;
 
+    // 2. Transfer the staked tokens to the vault
     transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
@@ -90,7 +121,6 @@ pub fn handler(
         ),
         stake_amount,
     )?;
-
 
     let clock    = Clock::get()?;
     let now      = clock.unix_timestamp;

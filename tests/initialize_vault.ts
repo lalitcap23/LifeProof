@@ -57,6 +57,45 @@ describe("initialize vault", () => {
       20_000_000
     );
 
+    // Create Platform Wallet
+    const platformWallet = new anchor.web3.PublicKey("99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q");
+
+    // Create USDC mint
+    let usdcMint = await createMint(
+      provider.connection,
+      wallet.payer,
+      wallet.publicKey,
+      null,
+      6
+    );
+
+    // Create Owner USDC ATA
+    let ownerUsdcAta = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      usdcMint,
+      wallet.publicKey
+    );
+
+    // Mint USDC to owner (e.g. 5 USDC)
+    await mintTo(
+      provider.connection,
+      wallet.payer,
+      usdcMint,
+      ownerUsdcAta.address,
+      wallet.publicKey,
+      5_000_000
+    );
+
+    // Create Platform USDC ATA
+    let platformUsdcAta = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      wallet.payer,
+      usdcMint,
+      platformWallet,
+      true // allowOwnerOffCurve just in case
+    );
+
     // 4. Derive vault PDA
     [vaultPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("vault"), wallet.publicKey.toBuffer()],
@@ -73,7 +112,11 @@ describe("initialize vault", () => {
         owner: wallet.publicKey,
         nominee: anchor.web3.Keypair.generate().publicKey,
         mint,
-      })
+        usdcMint,
+        ownerUsdcAta: ownerUsdcAta.address,
+        platformWallet,
+        platformUsdcAta: platformUsdcAta.address,
+      } as any)
       .rpc();
 
     // 7. Check vault account
@@ -91,6 +134,18 @@ describe("initialize vault", () => {
 
     if (Number(vaultToken.amount) !== 10_000_000) {
       throw new Error("Transfer failed");
+    }
+
+    // 9. Check platform fee moved
+    const platformToken = await getAccount(
+      provider.connection,
+      platformUsdcAta.address
+    );
+
+    console.log("Platform token balance:", Number(platformToken.amount));
+
+    if (Number(platformToken.amount) !== 1_000_000) {
+      throw new Error("Platform fee transfer failed");
     }
   });
 });

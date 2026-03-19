@@ -75,7 +75,6 @@ pub struct CloseVault<'info> {
 ///   4. CPI → SPL Token: close the now-empty vault ATA; rent goes to owner.
 ///   5. Anchor closes the vault PDA state account via `close = owner`
 ///              (happens automatically on handler exit).
-///
 /// Reverts if:
 ///   * The vault is not active.
 ///   * The deadline has already passed (nominee's claim window is open).
@@ -141,3 +140,4 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
     // `close = owner` constraint once this handler returns.
     Ok(())
 }
+
