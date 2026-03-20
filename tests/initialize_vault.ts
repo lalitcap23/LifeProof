@@ -30,6 +30,21 @@ describe("initialize vault", () => {
   let vaultAtaAddress: anchor.web3.PublicKey;
   let vaultPda: anchor.web3.PublicKey;
 
+  // Clean up: close the vault after tests so other test suites can create their own
+  after(async () => {
+    try {
+      await program.methods
+        .closeVault()
+        .accounts({
+          owner: wallet.publicKey,
+          mint,
+        } as any)
+        .rpc();
+    } catch (err) {
+      // Vault might not exist if test failed, ignore
+    }
+  });
+
   it("Initialize vault works", async () => {
     // 1. Create mint
     mint = await createMint(
