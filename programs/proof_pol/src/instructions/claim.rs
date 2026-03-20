@@ -12,7 +12,6 @@ use crate::state::CommitmentVault;
 #[derive(Accounts)]
 pub struct ClaimVault<'info> {
     /// The nominee who is claiming the forfeited stake.
-    /// Must match the pubkey stored inside the vault (`has_one = nominee`).
     #[account(mut)]
     pub nominee: Signer<'info>,
 

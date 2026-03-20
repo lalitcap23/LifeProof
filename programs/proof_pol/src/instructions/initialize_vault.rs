@@ -10,7 +10,6 @@ use crate::state::CommitmentVault;
 
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
-
     #[account(mut)]
     pub owner: Signer<'info>,
 
@@ -27,8 +26,7 @@ pub struct InitializeVault<'info> {
     )]
     pub vault: Account<'info, CommitmentVault>,
 
-    /// Any valid SPL mint is accepted; no hard-coded mint restriction.
-    
+    /// Any valid SPL mint is accepted
     pub mint: Account<'info, Mint>,
     /// Anchor validates: correct mint + correct owner authority.
     #[account(
@@ -57,7 +55,8 @@ pub struct InitializeVault<'info> {
         associated_token::authority = owner,
     )]
     pub owner_usdc_ata: Account<'info, TokenAccount>,
-
+    
+    /// CHECK: it is  the hardcode plateform wallet address
     #[account(address = PLATFORM_WALLET)]
     pub platform_wallet: UncheckedAccount<'info>,
 
@@ -109,7 +108,7 @@ pub fn handler(
         PLATFORM_FEE_USDC,
     )?;
 
-    // 2. Transfer the staked tokens to the vault
+    //  Transfer the staked tokens to the vault
     transfer(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),

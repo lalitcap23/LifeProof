@@ -62,11 +62,9 @@ pub struct CloseVault<'info> {
 
 
 /// Owner voluntarily closes the vault and retrieves their staked tokens.
-///
 /// Only valid while the deadline has NOT yet passed — i.e. while the owner is
 /// still in good standing.  Once the deadline lapses the vault can only be
 /// claimed by the nominee.
-///
 /// Steps executed:
 ///   1. Guard: vault must be active.
 ///   2. Guard: deadline must not have passed yet.

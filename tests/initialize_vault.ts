@@ -21,6 +21,7 @@ describe("initialize vault", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
+
   const program = anchor.workspace.ProofPol as Program<ProofPol>;
 
   const wallet = provider.wallet as anchor.Wallet;
@@ -98,8 +99,9 @@ describe("initialize vault", () => {
 
     // 4. Derive vault PDA
     [vaultPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"), wallet.publicKey.toBuffer()],
-      program.programId
+      [Buffer.from("vault"),
+     wallet.publicKey.toBuffer()],
+     program.programId
     );
 
     // 5. Derive vault ATA address

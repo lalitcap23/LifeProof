@@ -33,8 +33,7 @@ pub fn handler(ctx: Context<ProofOfLife>) -> Result<()> {
     let clock = Clock::get()?;
     let now   = clock.unix_timestamp;
 
-    // Once the deadline has passed the owner loses their right to check in;
-    // the nominee may now claim.
+
     require!(!vault.deadline_passed(now), ErrorCode::DeadlineAlreadyPassed);
 
     // Roll the deadline forward
