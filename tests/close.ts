@@ -1,6 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
 import { AnchorError, Program, BN } from "@coral-xyz/anchor";
 import { ProofPol } from "../target/types/proof_pol";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const IDL = require("../target/idl/proof_pol.json");
 import {
     BanksClient,
     BanksTransactionResultWithMeta,
@@ -393,13 +395,19 @@ describe("close_vault – deadline (bankrun time-travel)", () => {
     let vaultBump: number;
     let vaultAtaAddress: anchor.web3.PublicKey;
 
+    // Helper: get fresh blockhash from bankrun
+    async function getLatestBlockhash(): Promise<string> {
+        const latestBlockhash = await client.getLatestBlockhash();
+        return latestBlockhash?.[0] ?? context.lastBlockhash;
+    }
+
     // Helper: build and process a transaction via BanksClient (returns result + meta)
     async function sendInstruction(
         ix: TransactionInstruction,
         signers: anchor.web3.Keypair[] = []
     ): Promise<BanksTransactionResultWithMeta> {
         const tx = new Transaction();
-        tx.recentBlockhash = context.lastBlockhash;
+        tx.recentBlockhash = await getLatestBlockhash();
         tx.feePayer = payer.publicKey;
         tx.add(ix);
         tx.sign(payer, ...signers);
@@ -505,7 +513,8 @@ describe("close_vault – deadline (bankrun time-travel)", () => {
         client = context.banksClient;
         provider = new BankrunProvider(context);
         anchor.setProvider(provider);
-        program = anchor.workspace.ProofPol as Program<ProofPol>;
+        // Create program with the bankrun provider (don't use cached anchor.workspace)
+        program = new Program<ProofPol>(IDL, provider);
         payer = context.payer;
 
         // ── 1. Stake-token mint ────────────────────────────────────────────
@@ -526,9 +535,9 @@ describe("close_vault – deadline (bankrun time-travel)", () => {
         vaultAtaAddress = getAssociatedTokenAddressSync(mint, vaultPda, true);
     });
 
-    // Helper: initialise a fresh vault via the Anchor program client
+    // Helper: initialise a fresh vault via raw transaction (bankrun-compatible)
     async function initVaultBankrun(checkinInterval: number = ONE_HOUR) {
-        await program.methods
+        const ix = await program.methods
             .initializeVault(new BN(STAKE_AMOUNT), new BN(checkinInterval))
             .accounts({
                 owner: payer.publicKey,
@@ -539,7 +548,12 @@ describe("close_vault – deadline (bankrun time-travel)", () => {
                 platformWallet: PLATFORM_WALLET,
                 platformUsdcAta: platformUsdcAtaAddress,
             } as any)
-            .rpc();
+            .instruction();
+
+        const result = await sendInstruction(ix);
+        if (result.result) {
+            throw new Error(`initVaultBankrun failed: ${JSON.stringify(result.result)}`);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -600,10 +614,13 @@ describe("close_vault – deadline (bankrun time-travel)", () => {
                     const freshVault = await program.account.commitmentVault.fetch(vaultPda);
                     const dl = BigInt(freshVault.deadline.toNumber());
                     await warpTimeTo(dl - 60n);
-                    await program.methods
+
+                    // Close vault using raw transaction (bankrun-compatible)
+                    const closeIx = await program.methods
                         .closeVault()
                         .accounts({ owner: payer.publicKey, mint } as any)
-                        .rpc();
+                        .instruction();
+                    await sendInstruction(closeIx);
                 }
             });
 
