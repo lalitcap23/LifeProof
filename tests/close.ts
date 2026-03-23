@@ -360,13 +360,11 @@ describe("close_vault", () => {
     });
 });
 
-// ══════════════════════════════════════════════════════════════════════════════
 // BANKRUN TIME-TRAVEL SUITE – DeadlineAlreadyPassed
 //
 // Uses solana-bankrun's `startAnchor` + `context.setClock()` to deterministically
 // warp the on-chain unix_timestamp past the vault deadline, then asserts the
 // `close_vault` instruction fails with `DeadlineAlreadyPassed`.
-// ══════════════════════════════════════════════════════════════════════════════
 describe("close_vault – deadline (bankrun time-travel)", () => {
 
     // ─── Programme ID (matches Anchor.toml) ──────────────────────────────────

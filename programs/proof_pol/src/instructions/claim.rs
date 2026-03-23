@@ -11,7 +11,6 @@ use crate::state::CommitmentVault;
 
 #[derive(Accounts)]
 pub struct ClaimVault<'info> {
-    /// The nominee who is claiming the forfeited stake.
     #[account(mut)]
     pub nominee: Signer<'info>,
 
@@ -101,7 +100,6 @@ pub struct ClaimVault<'info> {
 ///     vault and claiming the rent without any tokens being present.
 ///
 /// Execution steps
-/// ───────────────
 ///   1. Guard: vault must be active.
 ///   2. Guard: current on-chain clock must be strictly past the stored deadline.
 ///   3. Guard: vault ATA must hold more than 0 tokens.           [LOOPHOLE-5]
@@ -112,7 +110,7 @@ pub struct ClaimVault<'info> {
 ///   8. Explicitly mark vault.is_active = false.                 [LOOPHOLE-4]
 ///   9. Anchor closes vault PDA state via `close = nominee` on handler exit.
 pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
-    // vault must be active ────────────────────────────────────────
+    // vault must be active 
 
     require!(ctx.accounts.vault.is_active, ErrorCode::VaultInactive);
 

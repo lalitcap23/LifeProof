@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
-/// Seeds: [b"vault", owner.key().as_ref()]
-///
+
 /// Layout (approximate byte budget):
 ///   discriminator    8
 ///   owner           32
@@ -21,18 +20,14 @@ pub struct CommitmentVault {
 
     pub nominee: Pubkey,
 
-    /// The SPL token mint that was staked into this vault.
     /// Used to validate the correct token accounts are passed on claim/close.
     pub mint: Pubkey,
 
-    /// Raw token units locked at initialization (informational snapshot).
-    /// Actual tokens live in the vault's Associ ated Token Account (ATA).
+    /// Actual tokens live in the vault's Associated Token Account (ATA).
     pub stake_amount: u64,
 
-     /// How often (in seconds) the owner must check in.
     pub checkin_interval: u64,
 
-    /// Unix timestamp of the most recent successful proof-of-life.
     pub last_checkin: i64,
 
     /// Unix timestamp after which the nominee may claim.
@@ -45,7 +40,6 @@ pub struct CommitmentVault {
 }
 
 impl CommitmentVault {
-    /// Convenience: check whether the deadline has passed relative to `now`.
     pub fn deadline_passed(&self, now: i64) -> bool {
         now > self.deadline
     }

@@ -16,9 +16,6 @@ declare_id!("aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e");
 pub mod proof_pol {
     use super::*;
 
-    /// Create and fund a new commitment vault.
-    ///
-    /// # Arguments
     /// * `stake_amount`     – Raw SPL token units to lock (minimum MIN_STAKE_AMOUNT).
     /// * `checkin_interval` – Seconds between required sign-ins (0 = 24 h default).
     pub fn initialize_vault(
@@ -40,7 +37,6 @@ pub mod proof_pol {
         claim::handler(ctx)
     }
 
-    /// Owner voluntarily closes the vault and reclaims their stake.
     /// Only valid while the deadline has not yet passed.
     pub fn close_vault(ctx: Context<CloseVault>) -> Result<()> {
         close::handler(ctx)
