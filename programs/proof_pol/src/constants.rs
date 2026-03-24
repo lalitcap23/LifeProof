@@ -16,6 +16,10 @@ pub const MAX_CHECKIN_INTERVAL: u64 = 86_400 * 30;
 /// Minimum check-in interval allowed: 1 hour in seconds.
 pub const MIN_CHECKIN_INTERVAL: u64 = 3_600;
 
+/// Extra waiting period after a missed deadline before claim is allowed.
+/// 2 days in seconds.
+pub const CLAIM_GRACE_PERIOD: u64 = 172_800;
+
 pub const PLATFORM_WALLET: Pubkey = pubkey!("99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q");
 
 pub const PLATFORM_FEE_USDC: u64 = 1_000_000;

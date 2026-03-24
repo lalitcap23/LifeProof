@@ -4,21 +4,24 @@ use anchor_spl::{
     token::{close_account, transfer, CloseAccount, Mint, Token, TokenAccount, Transfer},
 };
 
-use crate::constants::VAULT_SEED;
+use crate::constants::{CLAIM_GRACE_PERIOD, VAULT_SEED};
 use crate::error::ErrorCode;
 use crate::state::CommitmentVault;
 
 
 #[derive(Accounts)]
 pub struct ClaimVault<'info> {
+    /// Any signer allowed to execute automated claim once time conditions are met.
+    /// This is typically a backend cron bot or permissionless keeper.
     #[account(mut)]
-    pub nominee: Signer<'info>,
+    pub executor: Signer<'info>,
+
+    /// CHECK: validated via `has_one = nominee` on the vault account.
+    pub nominee: UncheckedAccount<'info>,
 
     /// The original vault owner — used only for PDA seed derivation.
-    /// No signing required; ownership is verified by `has_one = owner` below,
     /// which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
     ///
-    /// LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
     /// as `owner` and, if seeds still resolve, bypass the stored-owner check.
     /// CHECK: address verified via seeds derivation AND `has_one = owner` on vault.
     pub owner: UncheckedAccount<'info>,
@@ -27,7 +30,7 @@ pub struct ClaimVault<'info> {
     ///
     /// `seeds + bump`     — derives and verifies the PDA address.
     /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-    /// `has_one = nominee`— rejects any signer that is not the stored nominee.
+    /// `has_one = nominee`— enforces payout destination from vault state.
     /// `has_one = mint`   — ensures the correct token mint account is passed.
     /// `close   = nominee`— Anchor transfers vault-state rent to nominee
     ///automatically once the handler returns successfully.
@@ -56,7 +59,7 @@ pub struct ClaimVault<'info> {
     /// runtime `require!` checks on nominee_ata.mint and nominee_ata.owner.
     #[account(
         init_if_needed,
-        payer                       = nominee,
+        payer                       = executor,
         associated_token::mint      = mint,
         associated_token::authority = nominee,
     )]
@@ -83,7 +86,8 @@ pub struct ClaimVault<'info> {
     pub system_program: Program<'info, System>,
 }
 
-/// Nominee claims the staked tokens after the owner misses their check-in deadline.
+/// Anyone can execute claim once `deadline + grace_period` is reached.
+/// Funds always go to the nominee recorded in vault state.
 ///
 /// Loopholes closed
 ///  1. vault_ata authority = vault PDA only — nominee cannot bypass this program
@@ -101,7 +105,7 @@ pub struct ClaimVault<'info> {
 ///
 /// Execution steps
 ///   1. Guard: vault must be active.
-///   2. Guard: current on-chain clock must be strictly past the stored deadline.
+///   2. Guard: current on-chain clock must be >= (deadline + grace_period).
 ///   3. Guard: vault ATA must hold more than 0 tokens.           [LOOPHOLE-5]
 ///   4. Runtime ATA sanity checks on nominee_ata.                [LOOPHOLE-3]
 ///   5. Build vault PDA signer seeds.
@@ -114,11 +118,17 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
 
     require!(ctx.accounts.vault.is_active, ErrorCode::VaultInactive);
 
-    // deadline must have passed 
+    // deadline + grace period must have elapsed
     let now = Clock::get()?.unix_timestamp;
+    let claimable_at = ctx
+        .accounts
+        .vault
+        .deadline
+        .checked_add(CLAIM_GRACE_PERIOD as i64)
+        .ok_or(ErrorCode::Overflow)?;
     require!(
-        ctx.accounts.vault.deadline_passed(now),
-        ErrorCode::DeadlineNotPassed
+        now >= claimable_at,
+        ErrorCode::ClaimGracePeriodNotPassed
     );
 
     //  vault ATA must not be empty [LOOPHOLE-5] 
@@ -208,12 +218,14 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
     ctx.accounts.vault.is_active = false;
 
     msg!(
-        "claim_vault: nominee={} claimed {} token units | mint={} | owner={} | deadline was {}",
+        "claim_vault: executor={} nominee={} claimed {} token units | mint={} | owner={} | deadline={} | claimable_at={}",
+        ctx.accounts.executor.key(),
         ctx.accounts.nominee.key(),
         token_amount,
         ctx.accounts.mint.key(),
         ctx.accounts.owner.key(),
         ctx.accounts.vault.deadline,
+        claimable_at,
     );
 
     //  vault PDA state closed by Anchor

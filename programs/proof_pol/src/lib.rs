@@ -32,7 +32,8 @@ pub mod proof_pol {
         proof_life::handler(ctx)
     }
 
-    /// Nominee claims the staked funds after a missed check-in deadline.
+    /// Anyone may execute claim after a missed deadline + grace period.
+    /// Funds are always transferred to the stored nominee.
     pub fn claim_vault(ctx: Context<ClaimVault>) -> Result<()> {
         claim::handler(ctx)
     }

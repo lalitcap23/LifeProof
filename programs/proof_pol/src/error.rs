@@ -33,6 +33,10 @@ pub enum ErrorCode {
     #[msg("The deadline has not passed; the owner is still in time.")]
     DeadlineNotPassed,
 
+    /// Claim attempted after deadline but before the post-deadline grace period ends.
+    #[msg("The claim grace period has not elapsed yet.")]
+    ClaimGracePeriodNotPassed,
+
     /// Owner tried to submit proof-of-life after the deadline has already passed.
     #[msg("The deadline has already passed; proof-of-life is no longer accepted.")]
     DeadlineAlreadyPassed,
