@@ -49,6 +49,7 @@ export function getClaimVaultDiscriminatorBytes() {
 
 export type ClaimVaultInstruction<
   TProgram extends string = typeof PROOF_POL_PROGRAM_ADDRESS,
+  TAccountExecutor extends string | AccountMeta<string> = string,
   TAccountNominee extends string | AccountMeta<string> = string,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountVault extends string | AccountMeta<string> = string,
@@ -66,9 +67,12 @@ export type ClaimVaultInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
+      TAccountExecutor extends string
+        ? WritableSignerAccount<TAccountExecutor> &
+            AccountSignerMeta<TAccountExecutor>
+        : TAccountExecutor,
       TAccountNominee extends string
-        ? WritableSignerAccount<TAccountNominee> &
-            AccountSignerMeta<TAccountNominee>
+        ? ReadonlyAccount<TAccountNominee>
         : TAccountNominee,
       TAccountOwner extends string
         ? ReadonlyAccount<TAccountOwner>
@@ -126,6 +130,7 @@ export function getClaimVaultInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type ClaimVaultAsyncInput<
+  TAccountExecutor extends string = string,
   TAccountNominee extends string = string,
   TAccountOwner extends string = string,
   TAccountVault extends string = string,
@@ -136,8 +141,13 @@ export type ClaimVaultAsyncInput<
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  /** The nominee who is claiming the forfeited stake. */
-  nominee: TransactionSigner<TAccountNominee>;
+  /**
+   * Any signer allowed to execute automated claim once time conditions are met.
+   * This is typically a backend cron bot or permissionless keeper.
+   */
+  executor: TransactionSigner<TAccountExecutor>;
+  /** Stored nominee wallet that receives both tokens and rent refunds. */
+  nominee: Address<TAccountNominee>;
   /**
    * The original vault owner — used only for PDA seed derivation.
    * No signing required; ownership is verified by `has_one = owner` below,
@@ -152,7 +162,7 @@ export type ClaimVaultAsyncInput<
    *
    * `seeds + bump`     — derives and verifies the PDA address.
    * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-   * `has_one = nominee`— rejects any signer that is not the stored nominee.
+   * `has_one = nominee`— enforces payout destination from vault state.
    * `has_one = mint`   — ensures the correct token mint account is passed.
    * `close   = nominee`— Anchor transfers vault-state rent to nominee
    * automatically once the handler returns successfully.
@@ -192,6 +202,7 @@ export type ClaimVaultAsyncInput<
 };
 
 export async function getClaimVaultInstructionAsync<
+  TAccountExecutor extends string,
   TAccountNominee extends string,
   TAccountOwner extends string,
   TAccountVault extends string,
@@ -204,6 +215,7 @@ export async function getClaimVaultInstructionAsync<
   TProgramAddress extends Address = typeof PROOF_POL_PROGRAM_ADDRESS,
 >(
   input: ClaimVaultAsyncInput<
+    TAccountExecutor,
     TAccountNominee,
     TAccountOwner,
     TAccountVault,
@@ -218,6 +230,7 @@ export async function getClaimVaultInstructionAsync<
 ): Promise<
   ClaimVaultInstruction<
     TProgramAddress,
+    TAccountExecutor,
     TAccountNominee,
     TAccountOwner,
     TAccountVault,
@@ -234,7 +247,8 @@ export async function getClaimVaultInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    nominee: { value: input.nominee ?? null, isWritable: true },
+    executor: { value: input.executor ?? null, isWritable: true },
+    nominee: { value: input.nominee ?? null, isWritable: false },
     owner: { value: input.owner ?? null, isWritable: false },
     vault: { value: input.vault ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
@@ -312,6 +326,7 @@ export async function getClaimVaultInstructionAsync<
   const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
   return Object.freeze({
     accounts: [
+      getAccountMeta(accounts.executor),
       getAccountMeta(accounts.nominee),
       getAccountMeta(accounts.owner),
       getAccountMeta(accounts.vault),
@@ -326,6 +341,7 @@ export async function getClaimVaultInstructionAsync<
     programAddress,
   } as ClaimVaultInstruction<
     TProgramAddress,
+    TAccountExecutor,
     TAccountNominee,
     TAccountOwner,
     TAccountVault,
@@ -339,6 +355,7 @@ export async function getClaimVaultInstructionAsync<
 }
 
 export type ClaimVaultInput<
+  TAccountExecutor extends string = string,
   TAccountNominee extends string = string,
   TAccountOwner extends string = string,
   TAccountVault extends string = string,
@@ -349,8 +366,13 @@ export type ClaimVaultInput<
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  /** The nominee who is claiming the forfeited stake. */
-  nominee: TransactionSigner<TAccountNominee>;
+  /**
+   * Any signer allowed to execute automated claim once time conditions are met.
+   * This is typically a backend cron bot or permissionless keeper.
+   */
+  executor: TransactionSigner<TAccountExecutor>;
+  /** Stored nominee wallet that receives both tokens and rent refunds. */
+  nominee: Address<TAccountNominee>;
   /**
    * The original vault owner — used only for PDA seed derivation.
    * No signing required; ownership is verified by `has_one = owner` below,
@@ -365,7 +387,7 @@ export type ClaimVaultInput<
    *
    * `seeds + bump`     — derives and verifies the PDA address.
    * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-   * `has_one = nominee`— rejects any signer that is not the stored nominee.
+   * `has_one = nominee`— enforces payout destination from vault state.
    * `has_one = mint`   — ensures the correct token mint account is passed.
    * `close   = nominee`— Anchor transfers vault-state rent to nominee
    * automatically once the handler returns successfully.
@@ -405,6 +427,7 @@ export type ClaimVaultInput<
 };
 
 export function getClaimVaultInstruction<
+  TAccountExecutor extends string,
   TAccountNominee extends string,
   TAccountOwner extends string,
   TAccountVault extends string,
@@ -417,6 +440,7 @@ export function getClaimVaultInstruction<
   TProgramAddress extends Address = typeof PROOF_POL_PROGRAM_ADDRESS,
 >(
   input: ClaimVaultInput<
+    TAccountExecutor,
     TAccountNominee,
     TAccountOwner,
     TAccountVault,
@@ -430,6 +454,7 @@ export function getClaimVaultInstruction<
   config?: { programAddress?: TProgramAddress }
 ): ClaimVaultInstruction<
   TProgramAddress,
+  TAccountExecutor,
   TAccountNominee,
   TAccountOwner,
   TAccountVault,
@@ -445,7 +470,8 @@ export function getClaimVaultInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    nominee: { value: input.nominee ?? null, isWritable: true },
+    executor: { value: input.executor ?? null, isWritable: true },
+    nominee: { value: input.nominee ?? null, isWritable: false },
     owner: { value: input.owner ?? null, isWritable: false },
     vault: { value: input.vault ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
@@ -480,6 +506,7 @@ export function getClaimVaultInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
   return Object.freeze({
     accounts: [
+      getAccountMeta(accounts.executor),
       getAccountMeta(accounts.nominee),
       getAccountMeta(accounts.owner),
       getAccountMeta(accounts.vault),
@@ -494,6 +521,7 @@ export function getClaimVaultInstruction<
     programAddress,
   } as ClaimVaultInstruction<
     TProgramAddress,
+    TAccountExecutor,
     TAccountNominee,
     TAccountOwner,
     TAccountVault,
@@ -512,8 +540,13 @@ export type ParsedClaimVaultInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /** The nominee who is claiming the forfeited stake. */
-    nominee: TAccountMetas[0];
+    /**
+     * Any signer allowed to execute automated claim once time conditions are met.
+     * This is typically a backend cron bot or permissionless keeper.
+     */
+    executor: TAccountMetas[0];
+    /** Stored nominee wallet that receives both tokens and rent refunds. */
+    nominee: TAccountMetas[1];
     /**
      * The original vault owner — used only for PDA seed derivation.
      * No signing required; ownership is verified by `has_one = owner` below,
@@ -522,23 +555,23 @@ export type ParsedClaimVaultInstruction<
      * LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
      * as `owner` and, if seeds still resolve, bypass the stored-owner check.
      */
-    owner: TAccountMetas[1];
+    owner: TAccountMetas[2];
     /**
      * The vault PDA state account.
      *
      * `seeds + bump`     — derives and verifies the PDA address.
      * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-     * `has_one = nominee`— rejects any signer that is not the stored nominee.
+     * `has_one = nominee`— enforces payout destination from vault state.
      * `has_one = mint`   — ensures the correct token mint account is passed.
      * `close   = nominee`— Anchor transfers vault-state rent to nominee
      * automatically once the handler returns successfully.
      */
-    vault: TAccountMetas[2];
+    vault: TAccountMetas[3];
     /**
      * The SPL token mint that was staked.
      * Validated implicitly via `has_one = mint` on the vault above.
      */
-    mint: TAccountMetas[3];
+    mint: TAccountMetas[4];
     /**
      * Nominee's Associated Token Account — receives the staked tokens.
      *
@@ -549,7 +582,7 @@ export type ParsedClaimVaultInstruction<
      * A second layer of defence is applied in the handler itself via explicit
      * runtime `require!` checks on nominee_ata.mint and nominee_ata.owner.
      */
-    nomineeAta: TAccountMetas[4];
+    nomineeAta: TAccountMetas[5];
     /**
      * Vault's Associated Token Account — holds the staked tokens.
      *
@@ -561,10 +594,10 @@ export type ParsedClaimVaultInstruction<
      * allow the nominee to bypass the deadline check entirely by calling the
      * SPL Token program directly.
      */
-    vaultAta: TAccountMetas[5];
-    tokenProgram: TAccountMetas[6];
-    associatedTokenProgram: TAccountMetas[7];
-    systemProgram: TAccountMetas[8];
+    vaultAta: TAccountMetas[6];
+    tokenProgram: TAccountMetas[7];
+    associatedTokenProgram: TAccountMetas[8];
+    systemProgram: TAccountMetas[9];
   };
   data: ClaimVaultInstructionData;
 };
@@ -577,7 +610,7 @@ export function parseClaimVaultInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>
 ): ParsedClaimVaultInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 10) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -590,6 +623,7 @@ export function parseClaimVaultInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
+      executor: getNextAccount(),
       nominee: getNextAccount(),
       owner: getNextAccount(),
       vault: getNextAccount(),

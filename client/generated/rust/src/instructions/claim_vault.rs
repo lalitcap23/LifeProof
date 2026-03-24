@@ -13,7 +13,13 @@ pub const CLAIM_VAULT_DISCRIMINATOR: [u8; 8] = [87, 111, 176, 185, 53, 172, 227,
 /// Accounts.
 #[derive(Debug)]
 pub struct ClaimVault {
-            /// The nominee who is claiming the forfeited stake.
+            /// Any signer allowed to execute automated claim once time conditions are met.
+/// This is typically a backend cron bot or permissionless keeper.
+
+    
+              
+          pub executor: solana_pubkey::Pubkey,
+                /// Stored nominee wallet that receives both tokens and rent refunds.
 
     
               
@@ -32,7 +38,7 @@ pub struct ClaimVault {
 /// 
 /// `seeds + bump`     — derives and verifies the PDA address.
 /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-/// `has_one = nominee`— rejects any signer that is not the stored nominee.
+/// `has_one = nominee`— enforces payout destination from vault state.
 /// `has_one = mint`   — ensures the correct token mint account is passed.
 /// `close   = nominee`— Anchor transfers vault-state rent to nominee
 /// automatically once the handler returns successfully.
@@ -89,10 +95,14 @@ impl ClaimVault {
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
   pub fn instruction_with_remaining_accounts(&self, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(9+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(10+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
-            self.nominee,
+            self.executor,
             true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.nominee,
+            false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.owner,
@@ -163,18 +173,20 @@ impl Default for ClaimVaultInstructionData {
 ///
 /// ### Accounts:
 ///
-                      ///   0. `[writable, signer]` nominee
-          ///   1. `[]` owner
-                ///   2. `[writable]` vault
-          ///   3. `[]` mint
-                ///   4. `[writable]` nominee_ata
-                ///   5. `[writable]` vault_ata
-                ///   6. `[optional]` token_program (default to `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
-                ///   7. `[optional]` associated_token_program (default to `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL`)
-                ///   8. `[optional]` system_program (default to `11111111111111111111111111111111`)
+                      ///   0. `[writable, signer]` executor
+          ///   1. `[]` nominee
+          ///   2. `[]` owner
+                ///   3. `[writable]` vault
+          ///   4. `[]` mint
+                ///   5. `[writable]` nominee_ata
+                ///   6. `[writable]` vault_ata
+                ///   7. `[optional]` token_program (default to `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`)
+                ///   8. `[optional]` associated_token_program (default to `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL`)
+                ///   9. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct ClaimVaultBuilder {
-            nominee: Option<solana_pubkey::Pubkey>,
+            executor: Option<solana_pubkey::Pubkey>,
+                nominee: Option<solana_pubkey::Pubkey>,
                 owner: Option<solana_pubkey::Pubkey>,
                 vault: Option<solana_pubkey::Pubkey>,
                 mint: Option<solana_pubkey::Pubkey>,
@@ -190,7 +202,14 @@ impl ClaimVaultBuilder {
   pub fn new() -> Self {
     Self::default()
   }
-            /// The nominee who is claiming the forfeited stake.
+            /// Any signer allowed to execute automated claim once time conditions are met.
+/// This is typically a backend cron bot or permissionless keeper.
+#[inline(always)]
+    pub fn executor(&mut self, executor: solana_pubkey::Pubkey) -> &mut Self {
+                        self.executor = Some(executor);
+                    self
+    }
+            /// Stored nominee wallet that receives both tokens and rent refunds.
 #[inline(always)]
     pub fn nominee(&mut self, nominee: solana_pubkey::Pubkey) -> &mut Self {
                         self.nominee = Some(nominee);
@@ -211,7 +230,7 @@ impl ClaimVaultBuilder {
 /// 
 /// `seeds + bump`     — derives and verifies the PDA address.
 /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-/// `has_one = nominee`— rejects any signer that is not the stored nominee.
+/// `has_one = nominee`— enforces payout destination from vault state.
 /// `has_one = mint`   — ensures the correct token mint account is passed.
 /// `close   = nominee`— Anchor transfers vault-state rent to nominee
 /// automatically once the handler returns successfully.
@@ -287,7 +306,8 @@ impl ClaimVaultBuilder {
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = ClaimVault {
-                              nominee: self.nominee.expect("nominee is not set"),
+                              executor: self.executor.expect("executor is not set"),
+                                        nominee: self.nominee.expect("nominee is not set"),
                                         owner: self.owner.expect("owner is not set"),
                                         vault: self.vault.expect("vault is not set"),
                                         mint: self.mint.expect("mint is not set"),
@@ -304,7 +324,13 @@ impl ClaimVaultBuilder {
 
   /// `claim_vault` CPI accounts.
   pub struct ClaimVaultCpiAccounts<'a, 'b> {
-                  /// The nominee who is claiming the forfeited stake.
+                  /// Any signer allowed to execute automated claim once time conditions are met.
+/// This is typically a backend cron bot or permissionless keeper.
+
+      
+                    
+              pub executor: &'b solana_account_info::AccountInfo<'a>,
+                        /// Stored nominee wallet that receives both tokens and rent refunds.
 
       
                     
@@ -323,7 +349,7 @@ impl ClaimVaultBuilder {
 /// 
 /// `seeds + bump`     — derives and verifies the PDA address.
 /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-/// `has_one = nominee`— rejects any signer that is not the stored nominee.
+/// `has_one = nominee`— enforces payout destination from vault state.
 /// `has_one = mint`   — ensures the correct token mint account is passed.
 /// `close   = nominee`— Anchor transfers vault-state rent to nominee
 /// automatically once the handler returns successfully.
@@ -377,7 +403,13 @@ impl ClaimVaultBuilder {
 pub struct ClaimVaultCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
-            /// The nominee who is claiming the forfeited stake.
+            /// Any signer allowed to execute automated claim once time conditions are met.
+/// This is typically a backend cron bot or permissionless keeper.
+
+    
+              
+          pub executor: &'b solana_account_info::AccountInfo<'a>,
+                /// Stored nominee wallet that receives both tokens and rent refunds.
 
     
               
@@ -396,7 +428,7 @@ pub struct ClaimVaultCpi<'a, 'b> {
 /// 
 /// `seeds + bump`     — derives and verifies the PDA address.
 /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-/// `has_one = nominee`— rejects any signer that is not the stored nominee.
+/// `has_one = nominee`— enforces payout destination from vault state.
 /// `has_one = mint`   — ensures the correct token mint account is passed.
 /// `close   = nominee`— Anchor transfers vault-state rent to nominee
 /// automatically once the handler returns successfully.
@@ -453,6 +485,7 @@ impl<'a, 'b> ClaimVaultCpi<'a, 'b> {
           ) -> Self {
     Self {
       __program: program,
+              executor: accounts.executor,
               nominee: accounts.nominee,
               owner: accounts.owner,
               vault: accounts.vault,
@@ -484,10 +517,14 @@ impl<'a, 'b> ClaimVaultCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(9+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(10+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
-            *self.nominee.key,
+            *self.executor.key,
             true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.nominee.key,
+            false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.owner.key,
@@ -535,9 +572,10 @@ impl<'a, 'b> ClaimVaultCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(10 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(11 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.nominee.clone());
+                  account_infos.push(self.executor.clone());
+                        account_infos.push(self.nominee.clone());
                         account_infos.push(self.owner.clone());
                         account_infos.push(self.vault.clone());
                         account_infos.push(self.mint.clone());
@@ -560,15 +598,16 @@ impl<'a, 'b> ClaimVaultCpi<'a, 'b> {
 ///
 /// ### Accounts:
 ///
-                      ///   0. `[writable, signer]` nominee
-          ///   1. `[]` owner
-                ///   2. `[writable]` vault
-          ///   3. `[]` mint
-                ///   4. `[writable]` nominee_ata
-                ///   5. `[writable]` vault_ata
-          ///   6. `[]` token_program
-          ///   7. `[]` associated_token_program
-          ///   8. `[]` system_program
+                      ///   0. `[writable, signer]` executor
+          ///   1. `[]` nominee
+          ///   2. `[]` owner
+                ///   3. `[writable]` vault
+          ///   4. `[]` mint
+                ///   5. `[writable]` nominee_ata
+                ///   6. `[writable]` vault_ata
+          ///   7. `[]` token_program
+          ///   8. `[]` associated_token_program
+          ///   9. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct ClaimVaultCpiBuilder<'a, 'b> {
   instruction: Box<ClaimVaultCpiBuilderInstruction<'a, 'b>>,
@@ -578,6 +617,7 @@ impl<'a, 'b> ClaimVaultCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
     let instruction = Box::new(ClaimVaultCpiBuilderInstruction {
       __program: program,
+              executor: None,
               nominee: None,
               owner: None,
               vault: None,
@@ -591,7 +631,14 @@ impl<'a, 'b> ClaimVaultCpiBuilder<'a, 'b> {
     });
     Self { instruction }
   }
-      /// The nominee who is claiming the forfeited stake.
+      /// Any signer allowed to execute automated claim once time conditions are met.
+/// This is typically a backend cron bot or permissionless keeper.
+#[inline(always)]
+    pub fn executor(&mut self, executor: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.executor = Some(executor);
+                    self
+    }
+      /// Stored nominee wallet that receives both tokens and rent refunds.
 #[inline(always)]
     pub fn nominee(&mut self, nominee: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.nominee = Some(nominee);
@@ -612,7 +659,7 @@ impl<'a, 'b> ClaimVaultCpiBuilder<'a, 'b> {
 /// 
 /// `seeds + bump`     — derives and verifies the PDA address.
 /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-/// `has_one = nominee`— rejects any signer that is not the stored nominee.
+/// `has_one = nominee`— enforces payout destination from vault state.
 /// `has_one = mint`   — ensures the correct token mint account is passed.
 /// `close   = nominee`— Anchor transfers vault-state rent to nominee
 /// automatically once the handler returns successfully.
@@ -695,6 +742,8 @@ impl<'a, 'b> ClaimVaultCpiBuilder<'a, 'b> {
         let instruction = ClaimVaultCpi {
         __program: self.instruction.__program,
                   
+          executor: self.instruction.executor.expect("executor is not set"),
+                  
           nominee: self.instruction.nominee.expect("nominee is not set"),
                   
           owner: self.instruction.owner.expect("owner is not set"),
@@ -720,7 +769,8 @@ impl<'a, 'b> ClaimVaultCpiBuilder<'a, 'b> {
 #[derive(Clone, Debug)]
 struct ClaimVaultCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
-            nominee: Option<&'b solana_account_info::AccountInfo<'a>>,
+            executor: Option<&'b solana_account_info::AccountInfo<'a>>,
+                nominee: Option<&'b solana_account_info::AccountInfo<'a>>,
                 owner: Option<&'b solana_account_info::AccountInfo<'a>>,
                 vault: Option<&'b solana_account_info::AccountInfo<'a>>,
                 mint: Option<&'b solana_account_info::AccountInfo<'a>>,

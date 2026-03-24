@@ -31,27 +31,30 @@ pub enum ProofPolError {
     /// 6006 - The deadline has not passed; the owner is still in time.
     #[error("The deadline has not passed; the owner is still in time.")]
     DeadlineNotPassed = 0x1776,
-    /// 6007 - The deadline has already passed; proof-of-life is no longer accepted.
+    /// 6007 - The claim grace period has not elapsed yet.
+    #[error("The claim grace period has not elapsed yet.")]
+    ClaimGracePeriodNotPassed = 0x1777,
+    /// 6008 - The deadline has already passed; proof-of-life is no longer accepted.
     #[error("The deadline has already passed; proof-of-life is no longer accepted.")]
-    DeadlineAlreadyPassed = 0x1777,
-    /// 6008 - Only the nominated accountability wallet may perform this action.
+    DeadlineAlreadyPassed = 0x1778,
+    /// 6009 - Only the nominated accountability wallet may perform this action.
     #[error("Only the nominated accountability wallet may perform this action.")]
-    NotNominee = 0x1778,
-    /// 6009 - Only the vault owner may perform this action.
+    NotNominee = 0x1779,
+    /// 6010 - Only the vault owner may perform this action.
     #[error("Only the vault owner may perform this action.")]
-    NotOwner = 0x1779,
-    /// 6010 - The owner and nominee cannot be the same wallet.
+    NotOwner = 0x177A,
+    /// 6011 - The owner and nominee cannot be the same wallet.
     #[error("The owner and nominee cannot be the same wallet.")]
-    SelfNominee = 0x177A,
-    /// 6011 - Nominee token account mint does not match the vault mint.
+    SelfNominee = 0x177B,
+    /// 6012 - Nominee token account mint does not match the vault mint.
     #[error("Nominee token account mint does not match the vault mint.")]
-    NomineeAtaMintMismatch = 0x177B,
-    /// 6012 - Nominee token account is not owned by the nominee wallet.
+    NomineeAtaMintMismatch = 0x177C,
+    /// 6013 - Nominee token account is not owned by the nominee wallet.
     #[error("Nominee token account is not owned by the nominee wallet.")]
-    NomineeAtaOwnerMismatch = 0x177C,
-    /// 6013 - Arithmetic overflow when computing deadline timestamp.
+    NomineeAtaOwnerMismatch = 0x177D,
+    /// 6014 - Arithmetic overflow when computing deadline timestamp.
     #[error("Arithmetic overflow when computing deadline timestamp.")]
-    Overflow = 0x177D,
+    Overflow = 0x177E,
 }
 
 impl From<ProofPolError> for solana_program_error::ProgramError {
