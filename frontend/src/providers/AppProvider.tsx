@@ -16,8 +16,3 @@ export const AppProvider: FC<AppProviderProps> = ({ children }) => {
     </WalletProvider>
   );
 };
-proof_pol on 🌱 main !? ❯ 
-
-
-
-
