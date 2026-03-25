@@ -133,13 +133,6 @@ export type CloseVaultAsyncInput<
 > = {
   /** The vault owner — signs the transaction and reclaims all tokens + rent. */
   owner: TransactionSigner<TAccountOwner>;
-  /**
-   * The vault PDA state account.
-   * `has_one = owner`  — ensures only the real owner can close.
-   * `has_one = mint`   — ensures the correct token mint is passed.
-   * `close   = owner`  — Anchor transfers vault-account rent back to owner
-   * automatically once the handler returns.
-   */
   vault?: Address<TAccountVault>;
   /**
    * The SPL token mint that was staked.
@@ -213,13 +206,13 @@ export async function getCloseVaultInstructionAsync<
       value: input.associatedTokenProgram ?? null,
       isWritable: false,
     },
+
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedAccount
   >;
-
   // Resolve default values.
   if (!accounts.vault.value) {
     accounts.vault.value = await getProgramDerivedAddress({
@@ -316,13 +309,6 @@ export type CloseVaultInput<
 > = {
   /** The vault owner — signs the transaction and reclaims all tokens + rent. */
   owner: TransactionSigner<TAccountOwner>;
-  /**
-   * The vault PDA state account.
-   * `has_one = owner`  — ensures only the real owner can close.
-   * `has_one = mint`   — ensures the correct token mint is passed.
-   * `close   = owner`  — Anchor transfers vault-account rent back to owner
-   * automatically once the handler returns.
-   */
   vault: Address<TAccountVault>;
   /**
    * The SPL token mint that was staked.
@@ -450,13 +436,6 @@ export type ParsedCloseVaultInstruction<
   accounts: {
     /** The vault owner — signs the transaction and reclaims all tokens + rent. */
     owner: TAccountMetas[0];
-    /**
-     * The vault PDA state account.
-     * `has_one = owner`  — ensures only the real owner can close.
-     * `has_one = mint`   — ensures the correct token mint is passed.
-     * `close   = owner`  — Anchor transfers vault-account rent back to owner
-     * automatically once the handler returns.
-     */
     vault: TAccountMetas[1];
     /**
      * The SPL token mint that was staked.

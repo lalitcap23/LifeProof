@@ -19,16 +19,12 @@ pub struct ClaimVault {
     
               
           pub executor: solana_pubkey::Pubkey,
-                /// Stored nominee wallet that receives both tokens and rent refunds.
-
-    
+          
               
           pub nominee: solana_pubkey::Pubkey,
                 /// The original vault owner — used only for PDA seed derivation.
-/// No signing required; ownership is verified by `has_one = owner` below,
 /// which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
 /// 
-/// LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
 /// as `owner` and, if seeds still resolve, bypass the stored-owner check.
 
     
@@ -209,17 +205,14 @@ impl ClaimVaultBuilder {
                         self.executor = Some(executor);
                     self
     }
-            /// Stored nominee wallet that receives both tokens and rent refunds.
-#[inline(always)]
+            #[inline(always)]
     pub fn nominee(&mut self, nominee: solana_pubkey::Pubkey) -> &mut Self {
                         self.nominee = Some(nominee);
                     self
     }
             /// The original vault owner — used only for PDA seed derivation.
-/// No signing required; ownership is verified by `has_one = owner` below,
 /// which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
 /// 
-/// LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
 /// as `owner` and, if seeds still resolve, bypass the stored-owner check.
 #[inline(always)]
     pub fn owner(&mut self, owner: solana_pubkey::Pubkey) -> &mut Self {
@@ -330,16 +323,12 @@ impl ClaimVaultBuilder {
       
                     
               pub executor: &'b solana_account_info::AccountInfo<'a>,
-                        /// Stored nominee wallet that receives both tokens and rent refunds.
-
-      
+                
                     
               pub nominee: &'b solana_account_info::AccountInfo<'a>,
                         /// The original vault owner — used only for PDA seed derivation.
-/// No signing required; ownership is verified by `has_one = owner` below,
 /// which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
 /// 
-/// LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
 /// as `owner` and, if seeds still resolve, bypass the stored-owner check.
 
       
@@ -409,16 +398,12 @@ pub struct ClaimVaultCpi<'a, 'b> {
     
               
           pub executor: &'b solana_account_info::AccountInfo<'a>,
-                /// Stored nominee wallet that receives both tokens and rent refunds.
-
-    
+          
               
           pub nominee: &'b solana_account_info::AccountInfo<'a>,
                 /// The original vault owner — used only for PDA seed derivation.
-/// No signing required; ownership is verified by `has_one = owner` below,
 /// which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
 /// 
-/// LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
 /// as `owner` and, if seeds still resolve, bypass the stored-owner check.
 
     
@@ -638,17 +623,14 @@ impl<'a, 'b> ClaimVaultCpiBuilder<'a, 'b> {
                         self.instruction.executor = Some(executor);
                     self
     }
-      /// Stored nominee wallet that receives both tokens and rent refunds.
-#[inline(always)]
+      #[inline(always)]
     pub fn nominee(&mut self, nominee: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.nominee = Some(nominee);
                     self
     }
       /// The original vault owner — used only for PDA seed derivation.
-/// No signing required; ownership is verified by `has_one = owner` below,
 /// which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
 /// 
-/// LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
 /// as `owner` and, if seeds still resolve, bypass the stored-owner check.
 #[inline(always)]
     pub fn owner(&mut self, owner: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {

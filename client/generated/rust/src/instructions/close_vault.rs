@@ -18,13 +18,7 @@ pub struct CloseVault {
     
               
           pub owner: solana_pubkey::Pubkey,
-                /// The vault PDA state account.
-/// `has_one = owner`  — ensures only the real owner can close.
-/// `has_one = mint`   — ensures the correct token mint is passed.
-/// `close   = owner`  — Anchor transfers vault-account rent back to owner
-/// automatically once the handler returns.
-
-    
+          
               
           pub vault: solana_pubkey::Pubkey,
                 /// The SPL token mint that was staked.
@@ -166,12 +160,7 @@ impl CloseVaultBuilder {
                         self.owner = Some(owner);
                     self
     }
-            /// The vault PDA state account.
-/// `has_one = owner`  — ensures only the real owner can close.
-/// `has_one = mint`   — ensures the correct token mint is passed.
-/// `close   = owner`  — Anchor transfers vault-account rent back to owner
-/// automatically once the handler returns.
-#[inline(always)]
+            #[inline(always)]
     pub fn vault(&mut self, vault: solana_pubkey::Pubkey) -> &mut Self {
                         self.vault = Some(vault);
                     self
@@ -253,13 +242,7 @@ impl CloseVaultBuilder {
       
                     
               pub owner: &'b solana_account_info::AccountInfo<'a>,
-                        /// The vault PDA state account.
-/// `has_one = owner`  — ensures only the real owner can close.
-/// `has_one = mint`   — ensures the correct token mint is passed.
-/// `close   = owner`  — Anchor transfers vault-account rent back to owner
-/// automatically once the handler returns.
-
-      
+                
                     
               pub vault: &'b solana_account_info::AccountInfo<'a>,
                         /// The SPL token mint that was staked.
@@ -302,13 +285,7 @@ pub struct CloseVaultCpi<'a, 'b> {
     
               
           pub owner: &'b solana_account_info::AccountInfo<'a>,
-                /// The vault PDA state account.
-/// `has_one = owner`  — ensures only the real owner can close.
-/// `has_one = mint`   — ensures the correct token mint is passed.
-/// `close   = owner`  — Anchor transfers vault-account rent back to owner
-/// automatically once the handler returns.
-
-    
+          
               
           pub vault: &'b solana_account_info::AccountInfo<'a>,
                 /// The SPL token mint that was staked.
@@ -485,12 +462,7 @@ impl<'a, 'b> CloseVaultCpiBuilder<'a, 'b> {
                         self.instruction.owner = Some(owner);
                     self
     }
-      /// The vault PDA state account.
-/// `has_one = owner`  — ensures only the real owner can close.
-/// `has_one = mint`   — ensures the correct token mint is passed.
-/// `close   = owner`  — Anchor transfers vault-account rent back to owner
-/// automatically once the handler returns.
-#[inline(always)]
+      #[inline(always)]
     pub fn vault(&mut self, vault: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.vault = Some(vault);
                     self

@@ -146,14 +146,11 @@ export type ClaimVaultAsyncInput<
    * This is typically a backend cron bot or permissionless keeper.
    */
   executor: TransactionSigner<TAccountExecutor>;
-  /** Stored nominee wallet that receives both tokens and rent refunds. */
   nominee: Address<TAccountNominee>;
   /**
    * The original vault owner — used only for PDA seed derivation.
-   * No signing required; ownership is verified by `has_one = owner` below,
    * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
    *
-   * LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
    * as `owner` and, if seeds still resolve, bypass the stored-owner check.
    */
   owner: Address<TAccountOwner>;
@@ -371,14 +368,11 @@ export type ClaimVaultInput<
    * This is typically a backend cron bot or permissionless keeper.
    */
   executor: TransactionSigner<TAccountExecutor>;
-  /** Stored nominee wallet that receives both tokens and rent refunds. */
   nominee: Address<TAccountNominee>;
   /**
    * The original vault owner — used only for PDA seed derivation.
-   * No signing required; ownership is verified by `has_one = owner` below,
    * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
    *
-   * LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
    * as `owner` and, if seeds still resolve, bypass the stored-owner check.
    */
   owner: Address<TAccountOwner>;
@@ -545,14 +539,11 @@ export type ParsedClaimVaultInstruction<
      * This is typically a backend cron bot or permissionless keeper.
      */
     executor: TAccountMetas[0];
-    /** Stored nominee wallet that receives both tokens and rent refunds. */
     nominee: TAccountMetas[1];
     /**
      * The original vault owner — used only for PDA seed derivation.
-     * No signing required; ownership is verified by `has_one = owner` below,
      * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
      *
-     * LOOPHOLE-2 FIX: without `has_one = owner`, any pubkey could be passed
      * as `owner` and, if seeds still resolve, bypass the stored-owner check.
      */
     owner: TAccountMetas[2];

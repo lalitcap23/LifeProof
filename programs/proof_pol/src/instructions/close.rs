@@ -15,11 +15,6 @@ pub struct CloseVault<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    /// The vault PDA state account.
-    /// `has_one = owner`  — ensures only the real owner can close.
-    /// `has_one = mint`   — ensures the correct token mint is passed.
-    /// `close   = owner`  — Anchor transfers vault-account rent back to owner
-    ///                      automatically once the handler returns.
     #[account(
         mut,
         seeds   = [VAULT_SEED, owner.key().as_ref()],
@@ -75,7 +70,7 @@ pub struct CloseVault<'info> {
 ///              (happens automatically on handler exit).
 /// Reverts if:
 ///   * The vault is not active.
-///   * The deadline has already passed (nominee's claim window is open).
+///   * The deadline has already passed (nominee's claim window is open)ff.
 pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
 
     require!(ctx.accounts.vault.is_active, ErrorCode::VaultInactive);
