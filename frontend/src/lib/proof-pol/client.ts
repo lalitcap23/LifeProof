@@ -60,24 +60,27 @@ function createMockSigner(publicKey: PublicKey): TransactionSigner {
 
 /**
  * Create RPC-like object for fetching accounts
+ * Codama's @solana/kit expects: rpc.getAccountInfo(addr).send() pattern
  */
 function createRpcFetcher(connection: Connection) {
   return {
-    getAccountInfo: async (addr: Address) => {
-      const accountInfo = await connection.getAccountInfo(new PublicKey(addr));
-      if (!accountInfo) {
-        return { value: null };
-      }
-      return {
-        value: {
-          data: new Uint8Array(accountInfo.data),
-          executable: accountInfo.executable,
-          lamports: BigInt(accountInfo.lamports),
-          owner: accountInfo.owner.toBase58() as Address,
-          rentEpoch: BigInt(accountInfo.rentEpoch || 0),
-        },
-      };
-    },
+    getAccountInfo: (addr: Address, _config?: any) => ({
+      send: async () => {
+        const accountInfo = await connection.getAccountInfo(new PublicKey(addr));
+        if (!accountInfo) {
+          return { value: null };
+        }
+        return {
+          value: {
+            data: new Uint8Array(accountInfo.data),
+            executable: accountInfo.executable,
+            lamports: BigInt(accountInfo.lamports),
+            owner: accountInfo.owner.toBase58() as Address,
+            rentEpoch: BigInt(accountInfo.rentEpoch || 0),
+          },
+        };
+      },
+    }),
   };
 }
 

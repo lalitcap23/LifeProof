@@ -1,9 +1,10 @@
 "use client";
 
-import { FC, useState } from "react";
+import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import { PublicKey } from "@solana/web3.js";
+import { useProofPol } from "@/hooks/useProofPol";
 
 const INTERVAL_OPTIONS = [
   { label: "1 Hour", value: 3600 },
@@ -13,15 +14,23 @@ const INTERVAL_OPTIONS = [
   { label: "Custom", value: 0 },
 ];
 
+// USDC mint on devnet - replace with mainnet address for production
+const USDC_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+// Default stake token mint (can be USDC or any SPL token)
+const DEFAULT_STAKE_MINT = USDC_MINT;
+
 export default function CreateVault() {
   const { publicKey, connected } = useWallet();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+
+  // Use our Codama-powered hook
+  const { initializeVault, loading, error, vault } = useProofPol();
 
   const [nominee, setNominee] = useState("");
   const [stakeAmount, setStakeAmount] = useState("");
   const [selectedInterval, setSelectedInterval] = useState(86400);
   const [customInterval, setCustomInterval] = useState("");
+  const [txSignature, setTxSignature] = useState<string | null>(null);
 
   const [nomineeError, setNomineeError] = useState("");
 
@@ -63,27 +72,49 @@ export default function CreateVault() {
       return;
     }
 
-    setLoading(true);
-
     try {
-      // TODO: Implement actual transaction
-      console.log("Creating vault:", {
-        nominee,
-        stakeAmount: stake,
-        checkinInterval: interval,
-      });
-      alert(
-        `Vault creation coming soon!\n\nNominee: ${nominee}\nStake: ${stake} SOL\nInterval: ${interval} seconds`
-      );
+      // Convert stake to token units (6 decimals for USDC)
+      const stakeAmountUnits = BigInt(Math.floor(stake * 1_000_000));
 
-      // router.push('/dashboard');
-    } catch (error) {
-      console.error("Error creating vault:", error);
-      alert("Failed to create vault");
-    } finally {
-      setLoading(false);
+      // Call the Codama-generated instruction through our hook
+      const signature = await initializeVault({
+        nominee: nominee,
+        mint: DEFAULT_STAKE_MINT,
+        usdcMint: USDC_MINT,
+        stakeAmount: stakeAmountUnits,
+        checkinIntervalSeconds: BigInt(interval),
+      });
+
+      console.log("Vault created! Signature:", signature);
+      setTxSignature(signature);
+
+      // Navigate to dashboard after success
+      setTimeout(() => router.push("/dashboard"), 2000);
+    } catch (err: any) {
+      console.error("Error creating vault:", err);
+      alert(`Failed to create vault: ${err.message || "Unknown error"}`);
     }
   };
+
+  // Redirect if user already has a vault
+  if (vault) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">You Already Have a Vault</h1>
+          <p className="text-gray-400 mb-4">
+            Each wallet can only have one active vault.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!connected) {
     return (
@@ -210,6 +241,30 @@ export default function CreateVault() {
               How often you need to prove you&apos;re alive to keep your stake
             </p>
           </div>
+
+          {/* Success Message */}
+          {txSignature && (
+            <div className="bg-green-900/50 border border-green-500 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-green-400 mb-2">
+                Vault Created Successfully!
+              </h3>
+              <a
+                href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-300 hover:text-green-200 text-xs font-mono break-all"
+              >
+                View transaction: {txSignature.slice(0, 20)}...
+              </a>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-900/50 border border-red-500 rounded-lg p-4">
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
+          )}
 
           {/* Summary */}
           {nominee && stakeAmount && (selectedInterval > 0 || customInterval) && (
