@@ -1,94 +1,83 @@
 "use client";
 
-import { FC, useEffect, useState, useCallback } from "react";
-import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
+import { useState } from "react";
 import { VaultCard } from "@/components";
-import { getVaultPda } from "@/lib/utils";
-import { PROGRAM_ID } from "@/lib/constants";
-
-interface VaultData {
-  owner: string;
-  nominee: string;
-  stakeAmount: bigint;
-  checkinInterval: bigint;
-  lastCheckin: bigint;
-  deadline: bigint;
-  isActive: boolean;
-}
+import { useProofPol } from "@/hooks/useProofPol";
 
 export default function Dashboard() {
-  const { publicKey, connected } = useWallet();
-  const { connection } = useConnection();
-  const [vault, setVault] = useState<VaultData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    vault,
+    loading,
+    error,
+    connected,
+    publicKey,
+    proofOfLife,
+    closeVault,
+    claimVault,
+    refetch,
+  } = useProofPol();
 
-  const fetchVault = useCallback(async () => {
-    if (!publicKey || !PROGRAM_ID) return;
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const [vaultPda] = getVaultPda(publicKey);
-      const accountInfo = await connection.getAccountInfo(vaultPda);
-
-      if (accountInfo) {
-        // Parse vault data (8 byte discriminator + account data)
-        const data = accountInfo.data;
-        if (data.length >= 8 + 32 + 32 + 8 + 8 + 8 + 8 + 1) {
-          const owner = new PublicKey(data.slice(8, 40)).toBase58();
-          const nominee = new PublicKey(data.slice(40, 72)).toBase58();
-          const stakeAmount = data.readBigUInt64LE(72);
-          const checkinInterval = data.readBigUInt64LE(80);
-          const lastCheckin = data.readBigInt64LE(88);
-          const deadline = data.readBigInt64LE(96);
-          const isActive = data[104] === 1;
-
-          setVault({
-            owner,
-            nominee,
-            stakeAmount,
-            checkinInterval,
-            lastCheckin,
-            deadline,
-            isActive,
-          });
-        }
-      } else {
-        setVault(null);
-      }
-    } catch (err) {
-      console.error("Error fetching vault:", err);
-      setError("Failed to fetch vault data");
-    } finally {
-      setLoading(false);
-    }
-  }, [publicKey, connection]);
-
-  useEffect(() => {
-    if (connected && publicKey) {
-      fetchVault();
-    }
-  }, [connected, publicKey, fetchVault]);
+  const clearMessages = () => {
+    setActionError(null);
+    setSuccessMessage(null);
+  };
 
   const handleProofOfLife = async () => {
-    // TODO: Implement proof of life transaction
-    console.log("Proof of life");
-    alert("Proof of Life transaction - coming soon!");
+    clearMessages();
+    setActionLoading(true);
+    try {
+      const signature = await proofOfLife();
+      setSuccessMessage(`Proof of life submitted! Tx: ${signature.slice(0, 8)}...`);
+    } catch (err) {
+      console.error("Proof of life error:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to submit proof of life");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleClose = async () => {
-    // TODO: Implement close vault transaction
-    console.log("Close vault");
-    alert("Close Vault transaction - coming soon!");
+    if (!vault?.mint) {
+      setActionError("Vault mint information not available");
+      return;
+    }
+    clearMessages();
+    setActionLoading(true);
+    try {
+      const signature = await closeVault(vault.mint);
+      setSuccessMessage(`Vault closed! Tx: ${signature.slice(0, 8)}...`);
+    } catch (err) {
+      console.error("Close vault error:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to close vault");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleClaim = async () => {
-    // TODO: Implement claim transaction
-    console.log("Claim");
-    alert("Claim transaction - coming soon!");
+    if (!vault) {
+      setActionError("Vault information not available");
+      return;
+    }
+    clearMessages();
+    setActionLoading(true);
+    try {
+      const signature = await claimVault({
+        ownerAddress: vault.owner,
+        nomineeAddress: vault.nominee,
+        mintAddress: vault.mint,
+      });
+      setSuccessMessage(`Stake claimed! Tx: ${signature.slice(0, 8)}...`);
+    } catch (err) {
+      console.error("Claim vault error:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to claim vault");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (!connected) {
@@ -112,6 +101,24 @@ export default function Dashboard() {
           <p className="text-gray-400">Manage your commitment vaults</p>
         </div>
 
+        {/* Action feedback messages */}
+        {actionError && (
+          <div className="mb-6 bg-red-900/20 border border-red-800 rounded-lg p-4 text-red-400 flex justify-between items-center">
+            <span>{actionError}</span>
+            <button onClick={() => setActionError(null)} className="text-red-300 hover:text-white">
+              ✕
+            </button>
+          </div>
+        )}
+        {successMessage && (
+          <div className="mb-6 bg-green-900/20 border border-green-800 rounded-lg p-4 text-green-400 flex justify-between items-center">
+            <span>{successMessage}</span>
+            <button onClick={() => setSuccessMessage(null)} className="text-green-300 hover:text-white">
+              ✕
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
@@ -132,6 +139,7 @@ export default function Dashboard() {
               onProofOfLife={handleProofOfLife}
               onClose={handleClose}
               onClaim={handleClaim}
+              loading={actionLoading}
             />
           </div>
         ) : (
@@ -166,8 +174,9 @@ export default function Dashboard() {
 
         <div className="mt-8 flex justify-center">
           <button
-            onClick={fetchVault}
-            className="text-gray-400 hover:text-white text-sm flex items-center gap-2 transition-colors"
+            onClick={refetch}
+            disabled={loading || actionLoading}
+            className="text-gray-400 hover:text-white disabled:opacity-50 text-sm flex items-center gap-2 transition-colors"
           >
             <svg
               className="w-4 h-4"
