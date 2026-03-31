@@ -11,7 +11,6 @@ use crate::state::CommitmentVault;
 
 #[derive(Accounts)]
 pub struct ClaimVault<'info> {
-    /// Any signer allowed to execute automated claim once time conditions are met.
     /// This is typically a backend cron bot or permissionless keeper.
     #[account(mut)]
     pub executor: Signer<'info>,

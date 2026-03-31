@@ -73,7 +73,7 @@ export default function CreateVault() {
     }
 
     try {
-      // Convert stake to token units (6 decimals for USDC)
+      // Convert USDC amount to raw token units (USDC has 6 decimals)
       const stakeAmountUnits = BigInt(Math.floor(stake * 1_000_000));
 
       // Call the Codama-generated instruction through our hook
@@ -135,7 +135,7 @@ export default function CreateVault() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Create Commitment Vault</h1>
           <p className="text-gray-400">
-            Stake SOL and set up your proof-of-life commitment
+            Stake USDC and set up your proof-of-life commitment
           </p>
         </div>
 
@@ -179,7 +179,7 @@ export default function CreateVault() {
               htmlFor="stakeAmount"
               className="block text-sm font-medium text-gray-300 mb-2"
             >
-              Stake Amount (SOL)
+              Stake Amount (USDC)
             </label>
             <div className="relative">
               <input
@@ -187,17 +187,17 @@ export default function CreateVault() {
                 id="stakeAmount"
                 value={stakeAmount}
                 onChange={(e) => setStakeAmount(e.target.value)}
-                placeholder="0.0"
-                step="0.001"
+                placeholder="0.00"
+                step="0.01"
                 min="0"
                 className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
-                SOL
+                USDC
               </span>
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              Amount of SOL to stake in the commitment vault
+              Amount of USDC to stake in the commitment vault (minimum 10 USDC)
             </p>
           </div>
 
@@ -275,7 +275,7 @@ export default function CreateVault() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Stake</span>
-                  <span className="text-white">{stakeAmount} SOL</span>
+                  <span className="text-white">{stakeAmount} USDC</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Check-in every</span>
