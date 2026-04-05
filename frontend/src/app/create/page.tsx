@@ -98,7 +98,7 @@ export default function CreateVault() {
 
   /**
    * Wrap native SOL into a wSOL ATA so the program can treat it as an SPL token.
-   * Returns the wSOL ATA address.
+   * Uses idempotent createATA — safe even if wSOL ATA already exists.
    */
   async function wrapSol(lamports: bigint): Promise<string> {
     if (!publicKey || !wallet.sendTransaction) throw new Error("Wallet not connected");
@@ -106,40 +106,26 @@ export default function CreateVault() {
     const wsolAta = await getAssociatedTokenAddress(NATIVE_MINT, publicKey);
     const tx = new Transaction();
 
-    // Create wSOL ATA if it doesn't exist yet
-    try {
-      const info = await connection.getAccountInfo(wsolAta);
-      if (!info) {
-        tx.add(
-          createAssociatedTokenAccountInstruction(
-            publicKey,
-            wsolAta,
-            publicKey,
-            NATIVE_MINT
-          )
-        );
-      }
-    } catch {
-      tx.add(
-        createAssociatedTokenAccountInstruction(
-          publicKey,
-          wsolAta,
-          publicKey,
-          NATIVE_MINT
-        )
-      );
-    }
+    // Idempotent createATA — no-op if already exists, creates if not
+    tx.add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        publicKey,
+        wsolAta,
+        publicKey,
+        NATIVE_MINT
+      )
+    );
 
-    // Transfer SOL into the wSOL ATA
+    // Transfer exact SOL amount into the wSOL ATA
     tx.add(
       SystemProgram.transfer({
         fromPubkey: publicKey,
-        toPubkey: wsolAta,
-        lamports: lamports,
+        toPubkey:   wsolAta,
+        lamports:   Number(lamports), // SystemProgram expects number
       })
     );
 
-    // Sync native: marks the SOL balance as token balance
+    // SyncNative syncs the SOL balance → wSOL token balance
     tx.add(createSyncNativeInstruction(wsolAta));
 
     const { blockhash, lastValidBlockHeight } =
@@ -149,7 +135,6 @@ export default function CreateVault() {
 
     const sig = await wallet.sendTransaction(tx, connection);
     await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight });
-
     return wsolAta.toBase58();
   }
 

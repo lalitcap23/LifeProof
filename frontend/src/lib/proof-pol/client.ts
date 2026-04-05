@@ -7,10 +7,14 @@ import {
   PublicKey,
   Transaction,
   TransactionInstruction,
-  type Signer,
 } from "@solana/web3.js";
 import { type WalletContextState } from "@solana/wallet-adapter-react";
 import { address, type Address, type TransactionSigner } from "@solana/kit";
+import {
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountIdempotentInstruction,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 
 import {
   getInitializeVaultInstructionAsync,
@@ -26,50 +30,46 @@ import {
 export { PROOF_POL_PROGRAM_ADDRESS };
 export type { CommitmentVault };
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 /**
- * Convert Codama instruction to web3.js 1.x TransactionInstruction
+ * Convert Codama instruction to web3.js 1.x TransactionInstruction.
+ * Role encoding: 0=readonly, 1=writable, 2=readonly signer, 3=writable signer
  */
-function codamaToWeb3Instruction(
-  codamaInstruction: {
-    programAddress: Address;
-    accounts: readonly { address: Address; role: number; signer?: unknown }[];
-    data: Uint8Array;
-  }
-): TransactionInstruction {
+function codamaToWeb3Instruction(codamaInstruction: {
+  programAddress: Address;
+  accounts: readonly { address: Address; role: number; signer?: unknown }[];
+  data: Uint8Array;
+}): TransactionInstruction {
   return new TransactionInstruction({
     programId: new PublicKey(codamaInstruction.programAddress),
     keys: codamaInstruction.accounts.map((acc) => ({
       pubkey: new PublicKey(acc.address),
-      isSigner: acc.role >= 2, // 2 = signer, 3 = writable signer
-      isWritable: acc.role % 2 === 1 || acc.role === 3, // 1 = writable, 3 = writable signer
+      isSigner: acc.role >= 2,        // 2=readonly signer, 3=writable signer
+      isWritable: acc.role === 1 || acc.role === 3, // 1=writable, 3=writable signer
     })),
     data: Buffer.from(codamaInstruction.data),
   });
 }
 
 /**
- * Create a mock TransactionSigner from wallet public key
- * The actual signing is done by wallet-adapter, not this signer
+ * Create a mock TransactionSigner from wallet public key.
+ * The actual signing is done by wallet-adapter, not this signer.
  */
 function createMockSigner(publicKey: PublicKey): TransactionSigner {
-  const addr = publicKey.toBase58() as Address;
-  return {
-    address: addr,
-  } as TransactionSigner;
+  return { address: publicKey.toBase58() as Address } as TransactionSigner;
 }
 
 /**
- * Create RPC-like object for fetching accounts
- * Codama's @solana/kit expects: rpc.getAccountInfo(addr).send() pattern
+ * Create RPC-like object for Codama account fetchers.
+ * Codama expects: rpc.getAccountInfo(addr).send()
  */
 function createRpcFetcher(connection: Connection) {
   return {
     getAccountInfo: (addr: Address, _config?: any) => ({
       send: async () => {
         const accountInfo = await connection.getAccountInfo(new PublicKey(addr));
-        if (!accountInfo) {
-          return { value: null };
-        }
+        if (!accountInfo) return { value: null };
         return {
           value: {
             data: new Uint8Array(accountInfo.data),
@@ -83,6 +83,8 @@ function createRpcFetcher(connection: Connection) {
     }),
   };
 }
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProofPolClientConfig {
   connection: Connection;
@@ -103,8 +105,10 @@ export interface ClaimVaultParams {
   mintAddress: string;
 }
 
+// ─── Client ───────────────────────────────────────────────────────────────────
+
 /**
- * ProofPol Client - bridges Codama with wallet-adapter
+ * ProofPol Client — bridges Codama generated code with wallet-adapter.
  */
 export class ProofPolClient {
   private connection: Connection;
@@ -116,82 +120,74 @@ export class ProofPolClient {
   }
 
   private get publicKey(): PublicKey {
-    if (!this.wallet.publicKey) {
-      throw new Error("Wallet not connected");
-    }
+    if (!this.wallet.publicKey) throw new Error("Wallet not connected");
     return this.wallet.publicKey;
   }
 
   /**
-   * Send a transaction with the wallet.
-   * Surfaces the real simulation error from the wallet error object.
+   * Send a transaction (one or more instructions) via the connected wallet.
+   * Pre-simulates to surface real on-chain error messages before asking the wallet.
    */
   private async sendTransaction(
-    instruction: TransactionInstruction
+    instructions: TransactionInstruction | TransactionInstruction[]
   ): Promise<string> {
     if (!this.wallet.sendTransaction) {
       throw new Error("Wallet does not support sending transactions");
     }
 
-    // Pre-simulate so we can log program errors before the wallet rejects
+    const ixList = Array.isArray(instructions) ? instructions : [instructions];
+    const { blockhash, lastValidBlockHeight } =
+      await this.connection.getLatestBlockhash();
+
+    // ── Pre-simulate to surface Anchor errors clearly ──
     try {
-      const simResult = await this.connection.simulateTransaction(
-        new Transaction({
-          recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
-          feePayer: this.publicKey,
-        }).add(instruction)
-      );
+      const simTx = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: this.publicKey,
+      });
+      ixList.forEach((ix) => simTx.add(ix));
+
+      const simResult = await this.connection.simulateTransaction(simTx);
       if (simResult.value.err) {
-        console.error("🔴 Simulation error:", JSON.stringify(simResult.value.err));
-        console.error("🔴 Program logs:", simResult.value.logs?.join("\n"));
         const logs = simResult.value.logs ?? [];
-        const anchorMsg = logs.find((l) => l.includes("AnchorError") || l.includes("Error Number"));
-        if (anchorMsg) {
-          throw new Error(`Simulation failed: ${anchorMsg}`);
-        }
+        console.error("🔴 Simulation error:", JSON.stringify(simResult.value.err));
+        console.error("🔴 Program logs:\n", logs.join("\n"));
+
+        const anchorLine = logs.find(
+          (l) => l.includes("AnchorError") || l.includes("Error Number")
+        );
         throw new Error(
-          `Transaction simulation failed: ${JSON.stringify(simResult.value.err)}\n\nLogs:\n${logs.join("\n")}`
+          anchorLine
+            ? `Simulation failed: ${anchorLine}`
+            : `Simulation failed: ${JSON.stringify(simResult.value.err)}`
         );
       }
     } catch (simErr: any) {
-      // Only re-throw if it's our own error (not a simulation infra error)
-      if (simErr.message?.startsWith("Simulation failed") || simErr.message?.startsWith("Transaction simulation failed")) {
-        throw simErr;
-      }
-      console.warn("Pre-simulation threw (non-critical):", simErr);
+      if (simErr.message?.startsWith("Simulation failed")) throw simErr;
+      // Infra error (e.g. RPC timeout) — log and continue; let wallet try
+      console.warn("Pre-simulation non-critical error:", simErr.message);
     }
 
-    const transaction = new Transaction().add(instruction);
-    const { blockhash, lastValidBlockHeight } =
-      await this.connection.getLatestBlockhash();
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = this.publicKey;
+    // ── Build and send the real transaction ──
+    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: this.publicKey });
+    ixList.forEach((ix) => tx.add(ix));
 
     try {
-      const signature = await this.wallet.sendTransaction(
-        transaction,
-        this.connection
-      );
-      await this.connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight,
-      });
+      const signature = await this.wallet.sendTransaction(tx, this.connection);
+      await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight });
       return signature;
     } catch (err: any) {
       // Unwrap WalletSendTransactionError → real cause
       const cause = err?.cause ?? err?.error ?? err;
       const msg =
-        cause?.message ??
-        (typeof cause === "string" ? cause : JSON.stringify(cause));
-      console.error("🔴 sendTransaction real error:", msg, cause);
+        cause?.message ?? (typeof cause === "string" ? cause : JSON.stringify(cause));
+      console.error("🔴 Wallet send error:", msg, cause);
       throw new Error(msg || err?.message || "Transaction failed");
     }
   }
 
-  /**
-   * Get vault PDA address for a given owner
-   */
+  // ─── PDA utility ──────────────────────────────────────────────────────────
+
   getVaultPda(owner?: PublicKey): PublicKey {
     const ownerKey = owner || this.publicKey;
     const [vaultPda] = PublicKey.findProgramAddressSync(
@@ -201,87 +197,112 @@ export class ProofPolClient {
     return vaultPda;
   }
 
-  /**
-   * Fetch vault data using Codama decoder
-   */
+  // ─── Account fetching ─────────────────────────────────────────────────────
+
   async fetchVault(owner?: PublicKey): Promise<CommitmentVault | null> {
     const vaultPda = this.getVaultPda(owner);
     const rpc = createRpcFetcher(this.connection);
-
     try {
       const account = await fetchMaybeCommitmentVault(
         rpc as any,
         vaultPda.toBase58() as Address
       );
       return account.exists ? account.data : null;
-    } catch (error) {
+    } catch (error: any) {
+      // Gracefully handle stale accounts from old program deploys
+      // (decoder fails if on-chain data layout doesn't match current IDL)
+      if (error?.message?.includes("Failed to decode") || error?.name === "SolanaError") {
+        console.warn("⚠️  Vault account exists but failed to decode (stale account from old deploy). Treating as no vault.", error.message);
+        return null;
+      }
       console.error("Error fetching vault:", error);
       return null;
     }
   }
 
+  // ─── Instructions ─────────────────────────────────────────────────────────
+
   /**
-   * Initialize a new vault
+   * Initialize a new vault.
+   *
+   * Automatically creates the platform USDC ATA if it doesn't exist yet
+   * (first-time setup — the account is `mut` not `init_if_needed` in the program).
+   * Both instructions are batched into a single wallet-approved transaction.
    */
   async initializeVault(params: InitializeVaultParams): Promise<string> {
     const owner = createMockSigner(this.publicKey);
 
+    // ── Always ensure platform USDC ATA exists ────────────────────────────
+    // Uses the idempotent ATA instruction: safe no-op if already exists,
+    // creates with correct data if not. Eliminates the unreliable
+    // getAccountInfo() race condition.
+    const usdcMintPk = new PublicKey(params.usdcMint);
+    const PLATFORM_WALLET_PUBKEY = new PublicKey(
+      "99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q"
+    );
+    const platformUsdcAta = await getAssociatedTokenAddress(
+      usdcMintPk,
+      PLATFORM_WALLET_PUBKEY,
+      false,
+      TOKEN_PROGRAM_ID
+    );
+
+    const createPlatformAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+      this.publicKey,       // payer
+      platformUsdcAta,      // ATA to create
+      PLATFORM_WALLET_PUBKEY,
+      usdcMintPk,
+      TOKEN_PROGRAM_ID
+    );
+
+    // ── Build the vault init instruction via Codama ───────────────────────
     const instruction = await getInitializeVaultInstructionAsync({
       owner,
-      nominee: address(params.nominee),
-      mint: address(params.mint),
+      nominee:  address(params.nominee),
+      mint:     address(params.mint),
       usdcMint: address(params.usdcMint),
-      stakeAmount: params.stakeAmount,
+      stakeAmount:     params.stakeAmount,
       checkinInterval: params.checkinIntervalSeconds,
     });
 
-    const web3Instruction = codamaToWeb3Instruction(instruction as any);
-    return this.sendTransaction(web3Instruction);
+    const vaultIx = codamaToWeb3Instruction(instruction as any);
+
+    // Send [createPlatformAta (idempotent), vaultInit] in one transaction
+    return this.sendTransaction([createPlatformAtaIx, vaultIx]);
   }
 
   /**
-   * Submit proof of life to reset deadline
+   * Submit proof of life to reset the deadline.
    */
   async proofOfLife(): Promise<string> {
     const owner = createMockSigner(this.publicKey);
-
-    const instruction = await getProofOfLifeInstructionAsync({
-      owner,
-    });
-
-    const web3Instruction = codamaToWeb3Instruction(instruction as any);
-    return this.sendTransaction(web3Instruction);
+    const instruction = await getProofOfLifeInstructionAsync({ owner });
+    return this.sendTransaction(codamaToWeb3Instruction(instruction as any));
   }
 
   /**
-   * Close vault and withdraw tokens (owner only, before deadline)
+   * Close vault and withdraw tokens (owner only, before deadline).
    */
   async closeVault(mint: string): Promise<string> {
     const owner = createMockSigner(this.publicKey);
-
     const instruction = await getCloseVaultInstructionAsync({
       owner,
       mint: address(mint),
     });
-
-    const web3Instruction = codamaToWeb3Instruction(instruction as any);
-    return this.sendTransaction(web3Instruction);
+    return this.sendTransaction(codamaToWeb3Instruction(instruction as any));
   }
 
   /**
-   * Claim vault after deadline + grace period (anyone can execute)
+   * Claim vault after deadline + grace period (permissionless).
    */
   async claimVault(params: ClaimVaultParams): Promise<string> {
     const executor = createMockSigner(this.publicKey);
-
     const instruction = await getClaimVaultInstructionAsync({
       executor,
-      owner: address(params.ownerAddress),
+      owner:   address(params.ownerAddress),
       nominee: address(params.nomineeAddress),
-      mint: address(params.mintAddress),
+      mint:    address(params.mintAddress),
     });
-
-    const web3Instruction = codamaToWeb3Instruction(instruction as any);
-    return this.sendTransaction(web3Instruction);
+    return this.sendTransaction(codamaToWeb3Instruction(instruction as any));
   }
 }
