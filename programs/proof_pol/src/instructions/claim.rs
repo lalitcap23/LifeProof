@@ -11,7 +11,7 @@ use crate::state::CommitmentVault;
 
 #[derive(Accounts)]
 pub struct ClaimVault<'info> {
-    /// This is typically a backend cron bot or permissionless keeper.
+    /// permissionless keeper.
     #[account(mut)]
     pub executor: Signer<'info>,
 
@@ -26,7 +26,6 @@ pub struct ClaimVault<'info> {
     pub owner: UncheckedAccount<'info>,
 
     /// The vault PDA state account.
-    ///
     /// `seeds + bump`     — derives and verifies the PDA address.
     /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
     /// `has_one = nominee`— enforces payout destination from vault state.
@@ -101,7 +100,6 @@ pub struct ClaimVault<'info> {
 ///  5. `require!(vault_ata.amount > 0)` — rejects a claim on an already-empty
 ///     vault ATA so the nominee cannot grief the owner by closing a zero-balance
 ///     vault and claiming the rent without any tokens being present.
-///
 /// Execution steps
 ///   1. Guard: vault must be active.
 ///   2. Guard: current on-chain clock must be >= (deadline + grace_period).

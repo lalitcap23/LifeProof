@@ -1,10 +1,11 @@
-"use client";
+  "use client";
 
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useRouter } from "next/navigation";
 import { PublicKey } from "@solana/web3.js";
 import { useProofPol } from "@/hooks/useProofPol";
+import { USDC_MINT } from "@/lib/constants";
 
 const INTERVAL_OPTIONS = [
   { label: "1 Hour", value: 3600 },
@@ -14,9 +15,7 @@ const INTERVAL_OPTIONS = [
   { label: "Custom", value: 0 },
 ];
 
-// USDC mint on devnet - replace with mainnet address for production
-const USDC_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
-// Default stake token mint (can be USDC or any SPL token)
+// Default stake token mint (same as USDC for this program)
 const DEFAULT_STAKE_MINT = USDC_MINT;
 
 export default function CreateVault() {

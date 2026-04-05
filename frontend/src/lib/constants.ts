@@ -1,10 +1,25 @@
 import { Connection, clusterApiUrl } from "@solana/web3.js";
 
-export const PROGRAM_ID = process.env.NEXT_PUBLIC_PROGRAM_ID || "";
+export const PROGRAM_ID =
+  process.env.NEXT_PUBLIC_PROGRAM_ID ||
+  "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e";
+
+export const CLUSTER =
+  (process.env.NEXT_PUBLIC_CLUSTER as "devnet" | "mainnet-beta" | "testnet") ||
+  "devnet";
 
 export const getConnection = (): Connection => {
-  const endpoint = process.env.NEXT_PUBLIC_RPC_URL || clusterApiUrl("devnet");
+  const endpoint =
+    process.env.NEXT_PUBLIC_RPC_URL || clusterApiUrl(CLUSTER);
   return new Connection(endpoint, "confirmed");
 };
 
-export const PLATFORM_WALLET = "99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q";
+// USDC mint — devnet address is the Circle devnet USDC
+export const USDC_MINT =
+  process.env.NEXT_PUBLIC_USDC_MINT ||
+  "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+
+// Platform wallet that receives 1 USDC fee on vault creation
+export const PLATFORM_WALLET =
+  process.env.NEXT_PUBLIC_PLATFORM_WALLET ||
+  "455q3UD1KkfMP7zWrd2XcYoZW8LaVoiU969cmusengZ9";

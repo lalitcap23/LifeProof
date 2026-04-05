@@ -8,11 +8,14 @@ skip-lint = false
 [programs.localnet]
 proof_pol = "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e"
 
+[programs.devnet]
+proof_pol = "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
