@@ -123,7 +123,8 @@ export class ProofPolClient {
   }
 
   /**
-   * Send a transaction with the wallet
+   * Send a transaction with the wallet.
+   * Surfaces the real simulation error from the wallet error object.
    */
   private async sendTransaction(
     instruction: TransactionInstruction
@@ -132,24 +133,60 @@ export class ProofPolClient {
       throw new Error("Wallet does not support sending transactions");
     }
 
+    // Pre-simulate so we can log program errors before the wallet rejects
+    try {
+      const simResult = await this.connection.simulateTransaction(
+        new Transaction({
+          recentBlockhash: (await this.connection.getLatestBlockhash()).blockhash,
+          feePayer: this.publicKey,
+        }).add(instruction)
+      );
+      if (simResult.value.err) {
+        console.error("🔴 Simulation error:", JSON.stringify(simResult.value.err));
+        console.error("🔴 Program logs:", simResult.value.logs?.join("\n"));
+        const logs = simResult.value.logs ?? [];
+        const anchorMsg = logs.find((l) => l.includes("AnchorError") || l.includes("Error Number"));
+        if (anchorMsg) {
+          throw new Error(`Simulation failed: ${anchorMsg}`);
+        }
+        throw new Error(
+          `Transaction simulation failed: ${JSON.stringify(simResult.value.err)}\n\nLogs:\n${logs.join("\n")}`
+        );
+      }
+    } catch (simErr: any) {
+      // Only re-throw if it's our own error (not a simulation infra error)
+      if (simErr.message?.startsWith("Simulation failed") || simErr.message?.startsWith("Transaction simulation failed")) {
+        throw simErr;
+      }
+      console.warn("Pre-simulation threw (non-critical):", simErr);
+    }
+
     const transaction = new Transaction().add(instruction);
     const { blockhash, lastValidBlockHeight } =
       await this.connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = this.publicKey;
 
-    const signature = await this.wallet.sendTransaction(
-      transaction,
-      this.connection
-    );
-
-    await this.connection.confirmTransaction({
-      signature,
-      blockhash,
-      lastValidBlockHeight,
-    });
-
-    return signature;
+    try {
+      const signature = await this.wallet.sendTransaction(
+        transaction,
+        this.connection
+      );
+      await this.connection.confirmTransaction({
+        signature,
+        blockhash,
+        lastValidBlockHeight,
+      });
+      return signature;
+    } catch (err: any) {
+      // Unwrap WalletSendTransactionError → real cause
+      const cause = err?.cause ?? err?.error ?? err;
+      const msg =
+        cause?.message ??
+        (typeof cause === "string" ? cause : JSON.stringify(cause));
+      console.error("🔴 sendTransaction real error:", msg, cause);
+      throw new Error(msg || err?.message || "Transaction failed");
+    }
   }
 
   /**
