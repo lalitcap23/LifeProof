@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 /// PDA seed for the vault account.
 pub const VAULT_SEED: &[u8] = b"vault";
+pub const OWNER_PROFILE_SEED: &[u8] = b"owner_profile";
 
 /// Minimum stake amount in raw token units.
 /// For a token with 6 decimals this equals 10 tokens.

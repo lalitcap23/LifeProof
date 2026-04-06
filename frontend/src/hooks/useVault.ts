@@ -34,19 +34,19 @@ export function useVault() {
     setError(null);
 
     try {
-      const [vaultPda] = getVaultPda(publicKey);
+      const [vaultPda] = getVaultPda(publicKey, 0);
       const accountInfo = await connection.getAccountInfo(vaultPda);
 
       if (accountInfo) {
         const data = accountInfo.data;
-        if (data.length >= 8 + 32 + 32 + 8 + 8 + 8 + 8 + 1) {
+        if (data.length >= 8 + 32 + 8 + 32 + 32 + 8 + 8 + 8 + 8 + 1) {
           const owner = new PublicKey(data.slice(8, 40)).toBase58();
-          const nominee = new PublicKey(data.slice(40, 72)).toBase58();
-          const stakeAmount = data.readBigUInt64LE(72);
-          const checkinInterval = data.readBigUInt64LE(80);
-          const lastCheckin = data.readBigInt64LE(88);
-          const deadline = data.readBigInt64LE(96);
-          const isActive = data[104] === 1;
+          const nominee = new PublicKey(data.slice(48, 80)).toBase58();
+          const stakeAmount = data.readBigUInt64LE(112);
+          const checkinInterval = data.readBigUInt64LE(120);
+          const lastCheckin = data.readBigInt64LE(128);
+          const deadline = data.readBigInt64LE(136);
+          const isActive = data[144] === 1;
 
           setVault({
             address: vaultPda.toBase58(),

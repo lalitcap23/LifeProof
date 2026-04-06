@@ -34,7 +34,7 @@ pub struct ClaimVault<'info> {
     ///automatically once the handler returns successfully.
     #[account(
         mut,
-        seeds   = [VAULT_SEED, owner.key().as_ref()],
+        seeds   = [VAULT_SEED, owner.key().as_ref(), &vault.vault_id.to_le_bytes()],
         bump    = vault.bump,
         has_one = owner   @ ErrorCode::NotOwner,
         has_one = nominee @ ErrorCode::NotNominee,
@@ -154,14 +154,15 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
 
     // build vault PDA signer seeds
     //
-    // Seeds: [b"vault", owner_pubkey_bytes, bump_byte]
+    // Seeds: [b"vault", owner_pubkey_bytes, vault_id_le_bytes, bump_byte]
     // Both `bump_bytes` and `owner_key` are named stack locals so their
     // lifetimes outlive the `vault_seeds` slice — avoids the
     // "temporary value dropped while borrowed" compile error.
 
     let bump_bytes = [ctx.accounts.vault.bump];
+    let vault_id_bytes = ctx.accounts.vault.vault_id.to_le_bytes();
     let owner_key = ctx.accounts.owner.key();
-    let vault_seeds: &[&[u8]] = &[VAULT_SEED, owner_key.as_ref(), &bump_bytes];
+    let vault_seeds: &[&[u8]] = &[VAULT_SEED, owner_key.as_ref(), &vault_id_bytes, &bump_bytes];
     let signer = &[vault_seeds];
 
     // Snapshot the balance before any CPI can modify the ATA.

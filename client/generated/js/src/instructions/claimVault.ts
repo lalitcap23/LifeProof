@@ -141,10 +141,7 @@ export type ClaimVaultAsyncInput<
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  /**
-   * Any signer allowed to execute automated claim once time conditions are met.
-   * This is typically a backend cron bot or permissionless keeper.
-   */
+  /** permissionless keeper. */
   executor: TransactionSigner<TAccountExecutor>;
   nominee: Address<TAccountNominee>;
   /**
@@ -156,7 +153,6 @@ export type ClaimVaultAsyncInput<
   owner: Address<TAccountOwner>;
   /**
    * The vault PDA state account.
-   *
    * `seeds + bump`     — derives and verifies the PDA address.
    * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
    * `has_one = nominee`— enforces payout destination from vault state.
@@ -164,7 +160,7 @@ export type ClaimVaultAsyncInput<
    * `close   = nominee`— Anchor transfers vault-state rent to nominee
    * automatically once the handler returns successfully.
    */
-  vault?: Address<TAccountVault>;
+  vault: Address<TAccountVault>;
   /**
    * The SPL token mint that was staked.
    * Validated implicitly via `has_one = mint` on the vault above.
@@ -264,15 +260,6 @@ export async function getClaimVaultInstructionAsync<
   >;
 
   // Resolve default values.
-  if (!accounts.vault.value) {
-    accounts.vault.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([118, 97, 117, 108, 116])),
-        getAddressEncoder().encode(expectAddress(accounts.owner.value)),
-      ],
-    });
-  }
   if (!accounts.nomineeAta.value) {
     accounts.nomineeAta.value = await getProgramDerivedAddress({
       programAddress:
@@ -363,10 +350,7 @@ export type ClaimVaultInput<
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  /**
-   * Any signer allowed to execute automated claim once time conditions are met.
-   * This is typically a backend cron bot or permissionless keeper.
-   */
+  /** permissionless keeper. */
   executor: TransactionSigner<TAccountExecutor>;
   nominee: Address<TAccountNominee>;
   /**
@@ -378,7 +362,6 @@ export type ClaimVaultInput<
   owner: Address<TAccountOwner>;
   /**
    * The vault PDA state account.
-   *
    * `seeds + bump`     — derives and verifies the PDA address.
    * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
    * `has_one = nominee`— enforces payout destination from vault state.
@@ -534,10 +517,7 @@ export type ParsedClaimVaultInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /**
-     * Any signer allowed to execute automated claim once time conditions are met.
-     * This is typically a backend cron bot or permissionless keeper.
-     */
+    /** permissionless keeper. */
     executor: TAccountMetas[0];
     nominee: TAccountMetas[1];
     /**
@@ -549,7 +529,6 @@ export type ParsedClaimVaultInstruction<
     owner: TAccountMetas[2];
     /**
      * The vault PDA state account.
-     *
      * `seeds + bump`     — derives and verifies the PDA address.
      * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
      * `has_one = nominee`— enforces payout destination from vault state.

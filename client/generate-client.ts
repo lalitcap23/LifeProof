@@ -10,8 +10,8 @@ async function generateClients() {
 
     const clients = [
         { type: "JS", dir: "client/generated/js/src", renderVisitor: renderJavaScriptVisitor },
-        { type: "Umi", dir: "client/generated/umi/src", renderVisitor: renderJavaScriptUmiVisitor },
-        { type: "Rust", dir: "client/generated/rust/src", renderVisitor: renderRustVisitor },
+        // { type: "Umi", dir: "client/generated/umi/src", renderVisitor: renderJavaScriptUmiVisitor },
+        // { type: "Rust", dir: "client/generated/rust/src", renderVisitor: renderRustVisitor },
     ];
 
     for (const client of clients) {

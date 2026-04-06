@@ -25,6 +25,7 @@ export const PROOF_POL_PROGRAM_ADDRESS =
 
 export enum ProofPolAccount {
   CommitmentVault,
+  OwnerProfile,
 }
 
 export function identifyProofPolAccount(
@@ -41,6 +42,17 @@ export function identifyProofPolAccount(
     )
   ) {
     return ProofPolAccount.CommitmentVault;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([51, 38, 236, 107, 38, 26, 62, 91])
+      ),
+      0
+    )
+  ) {
+    return ProofPolAccount.OwnerProfile;
   }
   throw new Error(
     'The provided account could not be identified as a proofPol account.'

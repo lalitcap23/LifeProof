@@ -7,3 +7,4 @@
  */
 
 export * from './commitmentVault';
+export * from './ownerProfile';

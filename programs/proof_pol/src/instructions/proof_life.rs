@@ -12,7 +12,7 @@ pub struct ProofOfLife<'info> {
 
     #[account(
         mut,
-        seeds  = [VAULT_SEED, owner.key().as_ref()],
+        seeds  = [VAULT_SEED, owner.key().as_ref(), &vault.vault_id.to_le_bytes()],
         bump   = vault.bump,
         has_one = owner @ ErrorCode::NotOwner,
     )]

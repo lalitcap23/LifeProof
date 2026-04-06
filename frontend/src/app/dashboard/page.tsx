@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { VaultCard } from "@/components";
-import { useProofPol } from "@/hooks/useProofPol";
+import { useProofPol, type VaultData } from "@/hooks/useProofPol";
 
 export default function Dashboard() {
   const {
-    vault,
+    vaults,
     loading,
     error,
     connected,
@@ -17,7 +17,7 @@ export default function Dashboard() {
     refetch,
   } = useProofPol();
 
-  const [actionLoading, setActionLoading] = useState(false);
+  const [activeVaultAddress, setActiveVaultAddress] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -26,57 +26,23 @@ export default function Dashboard() {
     setSuccessMessage(null);
   };
 
-  const handleProofOfLife = async () => {
+  const withVaultAction = async (
+    vault: VaultData,
+    action: () => Promise<string>,
+    successLabel: string
+  ) => {
     clearMessages();
-    setActionLoading(true);
+    setActiveVaultAddress(vault.address);
     try {
-      const signature = await proofOfLife();
-      setSuccessMessage(`Proof of life submitted! Tx: ${signature.slice(0, 8)}...`);
+      const signature = await action();
+      setSuccessMessage(
+        `${successLabel} for vault #${vault.vaultId.toString()}! Tx: ${signature.slice(0, 8)}...`
+      );
     } catch (err) {
-      console.error("Proof of life error:", err);
-      setActionError(err instanceof Error ? err.message : "Failed to submit proof of life");
+      console.error(`${successLabel} error:`, err);
+      setActionError(err instanceof Error ? err.message : `Failed to ${successLabel.toLowerCase()}`);
     } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleClose = async () => {
-    if (!vault?.mint) {
-      setActionError("Vault mint information not available");
-      return;
-    }
-    clearMessages();
-    setActionLoading(true);
-    try {
-      const signature = await closeVault(vault.mint);
-      setSuccessMessage(`Vault closed! Tx: ${signature.slice(0, 8)}...`);
-    } catch (err) {
-      console.error("Close vault error:", err);
-      setActionError(err instanceof Error ? err.message : "Failed to close vault");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleClaim = async () => {
-    if (!vault) {
-      setActionError("Vault information not available");
-      return;
-    }
-    clearMessages();
-    setActionLoading(true);
-    try {
-      const signature = await claimVault({
-        ownerAddress: vault.owner,
-        nomineeAddress: vault.nominee,
-        mintAddress: vault.mint,
-      });
-      setSuccessMessage(`Stake claimed! Tx: ${signature.slice(0, 8)}...`);
-    } catch (err) {
-      console.error("Claim vault error:", err);
-      setActionError(err instanceof Error ? err.message : "Failed to claim vault");
-    } finally {
-      setActionLoading(false);
+      setActiveVaultAddress(null);
     }
   };
 
@@ -95,18 +61,17 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
           <p className="text-gray-400">Manage your commitment vaults</p>
         </div>
 
-        {/* Action feedback messages */}
         {actionError && (
           <div className="mb-6 bg-red-900/20 border border-red-800 rounded-lg p-4 text-red-400 flex justify-between items-center">
             <span>{actionError}</span>
             <button onClick={() => setActionError(null)} className="text-red-300 hover:text-white">
-              ✕
+              x
             </button>
           </div>
         )}
@@ -114,7 +79,7 @@ export default function Dashboard() {
           <div className="mb-6 bg-green-900/20 border border-green-800 rounded-lg p-4 text-green-400 flex justify-between items-center">
             <span>{successMessage}</span>
             <button onClick={() => setSuccessMessage(null)} className="text-green-300 hover:text-white">
-              ✕
+              x
             </button>
           </div>
         )}
@@ -127,20 +92,45 @@ export default function Dashboard() {
           <div className="bg-red-900/20 border border-red-800 rounded-lg p-4 text-red-400">
             {error}
           </div>
-        ) : vault ? (
-          <div className="grid gap-6">
-            <VaultCard
-              owner={vault.owner}
-              nominee={vault.nominee}
-              stakeAmount={vault.stakeAmount}
-              deadline={Number(vault.deadline)}
-              isActive={vault.isActive}
-              isOwner={vault.owner === publicKey?.toBase58()}
-              onProofOfLife={handleProofOfLife}
-              onClose={handleClose}
-              onClaim={handleClaim}
-              loading={actionLoading}
-            />
+        ) : vaults.length > 0 ? (
+          <div className="space-y-4">
+            {vaults.map((vault) => (
+              <VaultCard
+                key={vault.address}
+                vaultId={vault.vaultId}
+                mint={vault.mint}
+                owner={vault.owner}
+                nominee={vault.nominee}
+                stakeAmount={vault.stakeAmount}
+                deadline={Number(vault.deadline)}
+                isActive={vault.isActive}
+                isOwner={vault.owner === publicKey?.toBase58()}
+                onProofOfLife={() =>
+                  withVaultAction(vault, () => proofOfLife(vault.address), "Proof of life submitted")
+                }
+                onClose={() =>
+                  withVaultAction(
+                    vault,
+                    () => closeVault({ mint: vault.mint, vaultAddress: vault.address }),
+                    "Vault closed"
+                  )
+                }
+                onClaim={() =>
+                  withVaultAction(
+                    vault,
+                    () =>
+                      claimVault({
+                        ownerAddress: vault.owner,
+                        nomineeAddress: vault.nominee,
+                        mintAddress: vault.mint,
+                        vaultAddress: vault.address,
+                      }),
+                    "Stake claimed"
+                  )
+                }
+                loading={activeVaultAddress === vault.address}
+              />
+            ))}
           </div>
         ) : (
           <div className="bg-gray-800 rounded-xl p-8 text-center border border-gray-700">
@@ -175,7 +165,7 @@ export default function Dashboard() {
         <div className="mt-8 flex justify-center">
           <button
             onClick={refetch}
-            disabled={loading || actionLoading}
+            disabled={loading || activeVaultAddress !== null}
             className="text-gray-400 hover:text-white disabled:opacity-50 text-sm flex items-center gap-2 transition-colors"
           >
             <svg

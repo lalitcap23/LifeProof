@@ -56,6 +56,7 @@ export function getCommitmentVaultDiscriminatorBytes() {
 export type CommitmentVault = {
   discriminator: ReadonlyUint8Array;
   owner: Address;
+  vaultId: bigint;
   nominee: Address;
   /** Used to validate the correct token accounts are passed on claim/close. */
   mint: Address;
@@ -74,6 +75,7 @@ export type CommitmentVault = {
 
 export type CommitmentVaultArgs = {
   owner: Address;
+  vaultId: number | bigint;
   nominee: Address;
   /** Used to validate the correct token accounts are passed on claim/close. */
   mint: Address;
@@ -95,6 +97,7 @@ export function getCommitmentVaultEncoder(): FixedSizeEncoder<CommitmentVaultArg
     getStructEncoder([
       ['discriminator', fixEncoderSize(getBytesEncoder(), 8)],
       ['owner', getAddressEncoder()],
+      ['vaultId', getU64Encoder()],
       ['nominee', getAddressEncoder()],
       ['mint', getAddressEncoder()],
       ['stakeAmount', getU64Encoder()],
@@ -112,6 +115,7 @@ export function getCommitmentVaultDecoder(): FixedSizeDecoder<CommitmentVault> {
   return getStructDecoder([
     ['discriminator', fixDecoderSize(getBytesDecoder(), 8)],
     ['owner', getAddressDecoder()],
+    ['vaultId', getU64Decoder()],
     ['nominee', getAddressDecoder()],
     ['mint', getAddressDecoder()],
     ['stakeAmount', getU64Decoder()],

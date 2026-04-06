@@ -1,9 +1,13 @@
 "use client";
 
 import { FC } from "react";
-import { formatTimeRemaining, lamportsToSol } from "@/lib/utils";
+import { NATIVE_MINT } from "@solana/spl-token";
+import { USDC_MINT } from "@/lib/constants";
+import { formatTimeRemaining } from "@/lib/utils";
 
 interface VaultCardProps {
+  vaultId: bigint;
+  mint: string;
   owner: string;
   nominee: string;
   stakeAmount: bigint;
@@ -16,7 +20,21 @@ interface VaultCardProps {
   loading?: boolean;
 }
 
+function formatStakeAmount(stakeAmount: bigint, mint: string) {
+  if (mint === NATIVE_MINT.toBase58()) {
+    return `${(Number(stakeAmount) / 1e9).toFixed(4)} SOL`;
+  }
+
+  if (mint === USDC_MINT) {
+    return `${(Number(stakeAmount) / 1e6).toFixed(2)} USDC`;
+  }
+
+  return `${stakeAmount.toString()} units`;
+}
+
 export const VaultCard: FC<VaultCardProps> = ({
+  vaultId,
+  mint,
   owner,
   nominee,
   stakeAmount,
@@ -34,8 +52,11 @@ export const VaultCard: FC<VaultCardProps> = ({
 
   return (
     <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 hover:border-purple-500 transition-colors">
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-4 gap-4">
         <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-gray-500 mb-2">
+            Vault #{vaultId.toString()}
+          </p>
           <span
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
               isActive
@@ -49,10 +70,8 @@ export const VaultCard: FC<VaultCardProps> = ({
           </span>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold text-white">
-            {lamportsToSol(stakeAmount).toFixed(4)} SOL
-          </p>
-          <p className="text-sm text-gray-400">Staked</p>
+          <p className="text-2xl font-bold text-white">{formatStakeAmount(stakeAmount, mint)}</p>
+          <p className="text-sm text-gray-400 font-mono truncate max-w-44">{mint}</p>
         </div>
       </div>
 
@@ -62,15 +81,11 @@ export const VaultCard: FC<VaultCardProps> = ({
           <p className="text-sm text-gray-300 font-mono truncate">{owner}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">
-            Nominee
-          </p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Nominee</p>
           <p className="text-sm text-gray-300 font-mono truncate">{nominee}</p>
         </div>
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">
-            Deadline
-          </p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Deadline</p>
           <p
             className={`text-sm font-semibold ${
               isExpired ? "text-red-400" : "text-green-400"

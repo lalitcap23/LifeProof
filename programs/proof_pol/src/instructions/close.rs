@@ -17,7 +17,7 @@ pub struct CloseVault<'info> {
 
     #[account(
         mut,
-        seeds   = [VAULT_SEED, owner.key().as_ref()],
+        seeds   = [VAULT_SEED, owner.key().as_ref(), &vault.vault_id.to_le_bytes()],
         bump    = vault.bump,
         has_one = owner @ ErrorCode::NotOwner,
         has_one = mint,
@@ -83,13 +83,14 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
 
     // Build vault PDA signer seeds
     // Seeds must exactly match those used in `initialize_vault`:
-    //   [b"vault", owner_pubkey_bytes, bump_byte]
+    //   [b"vault", owner_pubkey_bytes, vault_id_le_bytes, bump_byte]
     // We copy `bump` into a local byte array so its lifetime outlives the
     // `seeds` slice — avoids a "temporary value dropped while borrowed" error.
 
     let bump_bytes = [ctx.accounts.vault.bump];
+    let vault_id_bytes = ctx.accounts.vault.vault_id.to_le_bytes();
     let owner_key = ctx.accounts.owner.key();
-    let vault_seeds: &[&[u8]] = &[VAULT_SEED, owner_key.as_ref(), &bump_bytes];
+    let vault_seeds: &[&[u8]] = &[VAULT_SEED, owner_key.as_ref(), &vault_id_bytes, &bump_bytes];
     let signer = &[vault_seeds];
 
     // Snapshot the token balance before any CPI modifies the account.
@@ -133,4 +134,3 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
     // `close = owner` constraint once this handler returns.
     Ok(())
 }
-

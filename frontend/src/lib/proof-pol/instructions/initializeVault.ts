@@ -55,6 +55,7 @@ export type InitializeVaultInstruction<
   TProgram extends string = typeof PROOF_POL_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountNominee extends string | AccountMeta<string> = string,
+  TAccountOwnerProfile extends string | AccountMeta<string> = string,
   TAccountVault extends string | AccountMeta<string> = string,
   TAccountMint extends string | AccountMeta<string> = string,
   TAccountOwnerAta extends string | AccountMeta<string> = string,
@@ -82,6 +83,9 @@ export type InitializeVaultInstruction<
       TAccountNominee extends string
         ? ReadonlyAccount<TAccountNominee>
         : TAccountNominee,
+      TAccountOwnerProfile extends string
+        ? WritableAccount<TAccountOwnerProfile>
+        : TAccountOwnerProfile,
       TAccountVault extends string
         ? WritableAccount<TAccountVault>
         : TAccountVault,
@@ -162,6 +166,7 @@ export function getInitializeVaultInstructionDataCodec(): FixedSizeCodec<
 export type InitializeVaultAsyncInput<
   TAccountOwner extends string = string,
   TAccountNominee extends string = string,
+  TAccountOwnerProfile extends string = string,
   TAccountVault extends string = string,
   TAccountMint extends string = string,
   TAccountOwnerAta extends string = string,
@@ -176,8 +181,9 @@ export type InitializeVaultAsyncInput<
 > = {
   owner: TransactionSigner<TAccountOwner>;
   nominee: Address<TAccountNominee>;
+  ownerProfile?: Address<TAccountOwnerProfile>;
   /** PDA vault state account — created and rent-funded by `owner`. */
-  vault?: Address<TAccountVault>;
+  vault: Address<TAccountVault>;
   /** Any valid SPL mint is accepted */
   mint: Address<TAccountMint>;
   /** Anchor validates: correct mint + correct owner authority. */
@@ -202,6 +208,7 @@ export type InitializeVaultAsyncInput<
 export async function getInitializeVaultInstructionAsync<
   TAccountOwner extends string,
   TAccountNominee extends string,
+  TAccountOwnerProfile extends string,
   TAccountVault extends string,
   TAccountMint extends string,
   TAccountOwnerAta extends string,
@@ -218,6 +225,7 @@ export async function getInitializeVaultInstructionAsync<
   input: InitializeVaultAsyncInput<
     TAccountOwner,
     TAccountNominee,
+    TAccountOwnerProfile,
     TAccountVault,
     TAccountMint,
     TAccountOwnerAta,
@@ -236,6 +244,7 @@ export async function getInitializeVaultInstructionAsync<
     TProgramAddress,
     TAccountOwner,
     TAccountNominee,
+    TAccountOwnerProfile,
     TAccountVault,
     TAccountMint,
     TAccountOwnerAta,
@@ -256,6 +265,7 @@ export async function getInitializeVaultInstructionAsync<
   const originalAccounts = {
     owner: { value: input.owner ?? null, isWritable: true },
     nominee: { value: input.nominee ?? null, isWritable: false },
+    ownerProfile: { value: input.ownerProfile ?? null, isWritable: true },
     vault: { value: input.vault ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
     ownerAta: { value: input.ownerAta ?? null, isWritable: true },
@@ -280,11 +290,15 @@ export async function getInitializeVaultInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.vault.value) {
-    accounts.vault.value = await getProgramDerivedAddress({
+  if (!accounts.ownerProfile.value) {
+    accounts.ownerProfile.value = await getProgramDerivedAddress({
       programAddress,
       seeds: [
-        getBytesEncoder().encode(new Uint8Array([118, 97, 117, 108, 116])),
+        getBytesEncoder().encode(
+          new Uint8Array([
+            111, 119, 110, 101, 114, 95, 112, 114, 111, 102, 105, 108, 101,
+          ])
+        ),
         getAddressEncoder().encode(expectAddress(accounts.owner.value)),
       ],
     });
@@ -381,6 +395,7 @@ export async function getInitializeVaultInstructionAsync<
     accounts: [
       getAccountMeta(accounts.owner),
       getAccountMeta(accounts.nominee),
+      getAccountMeta(accounts.ownerProfile),
       getAccountMeta(accounts.vault),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.ownerAta),
@@ -401,6 +416,7 @@ export async function getInitializeVaultInstructionAsync<
     TProgramAddress,
     TAccountOwner,
     TAccountNominee,
+    TAccountOwnerProfile,
     TAccountVault,
     TAccountMint,
     TAccountOwnerAta,
@@ -418,6 +434,7 @@ export async function getInitializeVaultInstructionAsync<
 export type InitializeVaultInput<
   TAccountOwner extends string = string,
   TAccountNominee extends string = string,
+  TAccountOwnerProfile extends string = string,
   TAccountVault extends string = string,
   TAccountMint extends string = string,
   TAccountOwnerAta extends string = string,
@@ -432,6 +449,7 @@ export type InitializeVaultInput<
 > = {
   owner: TransactionSigner<TAccountOwner>;
   nominee: Address<TAccountNominee>;
+  ownerProfile: Address<TAccountOwnerProfile>;
   /** PDA vault state account — created and rent-funded by `owner`. */
   vault: Address<TAccountVault>;
   /** Any valid SPL mint is accepted */
@@ -458,6 +476,7 @@ export type InitializeVaultInput<
 export function getInitializeVaultInstruction<
   TAccountOwner extends string,
   TAccountNominee extends string,
+  TAccountOwnerProfile extends string,
   TAccountVault extends string,
   TAccountMint extends string,
   TAccountOwnerAta extends string,
@@ -474,6 +493,7 @@ export function getInitializeVaultInstruction<
   input: InitializeVaultInput<
     TAccountOwner,
     TAccountNominee,
+    TAccountOwnerProfile,
     TAccountVault,
     TAccountMint,
     TAccountOwnerAta,
@@ -491,6 +511,7 @@ export function getInitializeVaultInstruction<
   TProgramAddress,
   TAccountOwner,
   TAccountNominee,
+  TAccountOwnerProfile,
   TAccountVault,
   TAccountMint,
   TAccountOwnerAta,
@@ -510,6 +531,7 @@ export function getInitializeVaultInstruction<
   const originalAccounts = {
     owner: { value: input.owner ?? null, isWritable: true },
     nominee: { value: input.nominee ?? null, isWritable: false },
+    ownerProfile: { value: input.ownerProfile ?? null, isWritable: true },
     vault: { value: input.vault ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: false },
     ownerAta: { value: input.ownerAta ?? null, isWritable: true },
@@ -556,6 +578,7 @@ export function getInitializeVaultInstruction<
     accounts: [
       getAccountMeta(accounts.owner),
       getAccountMeta(accounts.nominee),
+      getAccountMeta(accounts.ownerProfile),
       getAccountMeta(accounts.vault),
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.ownerAta),
@@ -576,6 +599,7 @@ export function getInitializeVaultInstruction<
     TProgramAddress,
     TAccountOwner,
     TAccountNominee,
+    TAccountOwnerProfile,
     TAccountVault,
     TAccountMint,
     TAccountOwnerAta,
@@ -598,25 +622,26 @@ export type ParsedInitializeVaultInstruction<
   accounts: {
     owner: TAccountMetas[0];
     nominee: TAccountMetas[1];
+    ownerProfile: TAccountMetas[2];
     /** PDA vault state account — created and rent-funded by `owner`. */
-    vault: TAccountMetas[2];
+    vault: TAccountMetas[3];
     /** Any valid SPL mint is accepted */
-    mint: TAccountMetas[3];
+    mint: TAccountMetas[4];
     /** Anchor validates: correct mint + correct owner authority. */
-    ownerAta: TAccountMetas[4];
+    ownerAta: TAccountMetas[5];
     /**
      * Vault's Associated Token Account — holds staked tokens for the vault's lifetime.
      * The vault PDA is the sole authority, so only the program can move tokens out.
      * `init` (not `init_if_needed`) because the vault PDA is always brand-new here.
      */
-    vaultAta: TAccountMetas[5];
-    usdcMint: TAccountMetas[6];
-    ownerUsdcAta: TAccountMetas[7];
-    platformWallet: TAccountMetas[8];
-    platformUsdcAta: TAccountMetas[9];
-    tokenProgram: TAccountMetas[10];
-    associatedTokenProgram: TAccountMetas[11];
-    systemProgram: TAccountMetas[12];
+    vaultAta: TAccountMetas[6];
+    usdcMint: TAccountMetas[7];
+    ownerUsdcAta: TAccountMetas[8];
+    platformWallet: TAccountMetas[9];
+    platformUsdcAta: TAccountMetas[10];
+    tokenProgram: TAccountMetas[11];
+    associatedTokenProgram: TAccountMetas[12];
+    systemProgram: TAccountMetas[13];
   };
   data: InitializeVaultInstructionData;
 };
@@ -629,7 +654,7 @@ export function parseInitializeVaultInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>
 ): ParsedInitializeVaultInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 14) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -644,6 +669,7 @@ export function parseInitializeVaultInstruction<
     accounts: {
       owner: getNextAccount(),
       nominee: getNextAccount(),
+      ownerProfile: getNextAccount(),
       vault: getNextAccount(),
       mint: getNextAccount(),
       ownerAta: getNextAccount(),

@@ -18,6 +18,8 @@ use anchor_lang::prelude::*;
 pub struct CommitmentVault {
     pub owner: Pubkey,
 
+    pub vault_id: u64,
+
     pub nominee: Pubkey,
 
     /// Used to validate the correct token accounts are passed on claim/close.

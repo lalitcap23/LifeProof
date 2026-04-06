@@ -1,9 +1,23 @@
 import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID } from "./constants";
 
-export const getVaultPda = (owner: PublicKey): [PublicKey, number] => {
+const u64ToSeed = (value: bigint | number): Uint8Array => {
+  const seed = new Uint8Array(8);
+  const view = new DataView(seed.buffer);
+  view.setBigUint64(0, typeof value === "number" ? BigInt(value) : value, true);
+  return seed;
+};
+
+export const getOwnerProfilePda = (owner: PublicKey): [PublicKey, number] => {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from("vault"), owner.toBuffer()],
+    [Buffer.from("owner_profile"), owner.toBuffer()],
+    new PublicKey(PROGRAM_ID)
+  );
+};
+
+export const getVaultPda = (owner: PublicKey, vaultId: bigint | number): [PublicKey, number] => {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("vault"), owner.toBuffer(), u64ToSeed(vaultId)],
     new PublicKey(PROGRAM_ID)
   );
 };

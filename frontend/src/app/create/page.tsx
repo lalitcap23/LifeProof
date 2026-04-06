@@ -13,7 +13,7 @@ import {
   createSyncNativeInstruction,
   createCloseAccountInstruction,
   getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
+  createAssociatedTokenAccountIdempotentInstruction,
   NATIVE_MINT,
 } from "@solana/spl-token";
 import { useProofPol } from "@/hooks/useProofPol";
@@ -62,7 +62,7 @@ export default function CreateVault() {
   const { connection } = useConnection();
   const router = useRouter();
 
-  const { initializeVault, loading, error, vault } = useProofPol();
+  const { initializeVault, loading, error, vaults } = useProofPol();
 
   // Form state
   const [selectedToken, setSelectedToken] = useState(TOKEN_OPTIONS[0]);
@@ -221,26 +221,6 @@ export default function CreateVault() {
     }
   };
 
-  // ── Guard: already has vault ──────────────────────────────────────────────
-  if (vault) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">You Already Have a Vault</h1>
-          <p className="text-gray-400 mb-4">
-            Each wallet can only have one active vault.
-          </p>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   // ── Guard: wallet not connected ───────────────────────────────────────────
   if (!connected) {
     return (
@@ -265,9 +245,16 @@ export default function CreateVault() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Create Commitment Vault</h1>
           <p className="text-gray-400">
-            Stake tokens and set up your proof-of-life commitment
+            Stake tokens and set up another proof-of-life commitment
           </p>
         </div>
+
+        {vaults.length > 0 && (
+          <div className="mb-6 rounded-xl border border-cyan-700/40 bg-cyan-900/10 p-4 text-cyan-200">
+            You already have {vaults.length} vault{vaults.length === 1 ? "" : "s"}.
+            Creating a new one will use the next vault ID automatically.
+          </div>
+        )}
 
         <form
           onSubmit={handleSubmit}

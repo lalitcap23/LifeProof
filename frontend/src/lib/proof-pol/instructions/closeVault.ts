@@ -133,7 +133,7 @@ export type CloseVaultAsyncInput<
 > = {
   /** The vault owner — signs the transaction and reclaims all tokens + rent. */
   owner: TransactionSigner<TAccountOwner>;
-  vault?: Address<TAccountVault>;
+  vault: Address<TAccountVault>;
   /**
    * The SPL token mint that was staked.
    * Validated implicitly via `has_one = mint` on the vault above.
@@ -206,23 +206,14 @@ export async function getCloseVaultInstructionAsync<
       value: input.associatedTokenProgram ?? null,
       isWritable: false,
     },
-
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedAccount
   >;
+
   // Resolve default values.
-  if (!accounts.vault.value) {
-    accounts.vault.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([118, 97, 117, 108, 116])),
-        getAddressEncoder().encode(expectAddress(accounts.owner.value)),
-      ],
-    });
-  }
   if (!accounts.ownerAta.value) {
     accounts.ownerAta.value = await getProgramDerivedAddress({
       programAddress:

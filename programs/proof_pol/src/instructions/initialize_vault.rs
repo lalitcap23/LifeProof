@@ -6,7 +6,7 @@ use anchor_spl::{
 
 use crate::constants::*;
 use crate::error::ErrorCode;
-use crate::state::CommitmentVault;
+use crate::state::{CommitmentVault, OwnerProfile};
 
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
@@ -16,12 +16,22 @@ pub struct InitializeVault<'info> {
     /// CHECK: validated against owner in the handle (SelfNominee guard).
     pub nominee: UncheckedAccount<'info>,
 
+    #[account(
+        init_if_needed,
+        payer = owner,
+        space = 8 + OwnerProfile::INIT_SPACE,
+        seeds = [OWNER_PROFILE_SEED, owner.key().as_ref()],
+        bump,
+        constraint = owner_profile.owner == Pubkey::default() || owner_profile.owner == owner.key() @ ErrorCode::NotOwner,
+    )]
+    pub owner_profile: Account<'info, OwnerProfile>,
+
     /// PDA vault state account — created and rent-funded by `owner`.
     #[account(
         init,
         payer  = owner,
         space  = 8 + CommitmentVault::INIT_SPACE,
-        seeds  = [VAULT_SEED, owner.key().as_ref()],
+        seeds  = [VAULT_SEED, owner.key().as_ref(), &owner_profile.next_vault_id.to_le_bytes()],
         bump,
     )]
     pub vault: Account<'info, CommitmentVault>,
@@ -83,6 +93,14 @@ pub fn handler(
 ) -> Result<()> {
     let owner_key   = ctx.accounts.owner.key();
     let nominee_key = ctx.accounts.nominee.key();
+    let owner_profile = &mut ctx.accounts.owner_profile;
+
+    if owner_profile.owner == Pubkey::default() {
+        owner_profile.owner = owner_key;
+        owner_profile.bump = ctx.bumps.owner_profile;
+    }
+
+    let vault_id = owner_profile.next_vault_id;
 
     require!(owner_key != nominee_key,         ErrorCode::SelfNominee);
     require!(stake_amount >= MIN_STAKE_AMOUNT, ErrorCode::StakeTooLow);
@@ -129,6 +147,7 @@ pub fn handler(
 
     let vault              = &mut ctx.accounts.vault;
     vault.owner            = owner_key;
+    vault.vault_id         = vault_id;
     vault.nominee          = nominee_key;
     vault.mint             = ctx.accounts.mint.key();
     vault.stake_amount     = stake_amount;
@@ -138,9 +157,15 @@ pub fn handler(
     vault.is_active        = true;
     vault.bump             = ctx.bumps.vault;
 
+    owner_profile.next_vault_id = owner_profile
+        .next_vault_id
+        .checked_add(1)
+        .ok_or(ErrorCode::Overflow)?;
+
     msg!(
-        "Vault initialized: owner={}, nominee={}, mint={}, stake={} tokens, interval={}s, deadline={}",
+        "Vault initialized: owner={}, vault_id={}, nominee={}, mint={}, stake={} tokens, interval={}s, deadline={}",
         owner_key,
+        vault_id,
         nominee_key,
         ctx.accounts.mint.key(),
         stake_amount,

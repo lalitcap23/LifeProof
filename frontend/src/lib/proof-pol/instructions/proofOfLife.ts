@@ -10,10 +10,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   transformEncoder,
@@ -32,11 +30,7 @@ import {
   type WritableSignerAccount,
 } from '@solana/kit';
 import { PROOF_POL_PROGRAM_ADDRESS } from '../programs';
-import {
-  expectAddress,
-  getAccountMetaFactory,
-  type ResolvedAccount,
-} from '../shared';
+import { getAccountMetaFactory, type ResolvedAccount } from '../shared';
 
 export const PROOF_OF_LIFE_DISCRIMINATOR = new Uint8Array([
   52, 157, 123, 29, 44, 147, 143, 234,
@@ -93,57 +87,6 @@ export function getProofOfLifeInstructionDataCodec(): FixedSizeCodec<
     getProofOfLifeInstructionDataEncoder(),
     getProofOfLifeInstructionDataDecoder()
   );
-}
-
-export type ProofOfLifeAsyncInput<
-  TAccountOwner extends string = string,
-  TAccountVault extends string = string,
-> = {
-  /** The vault owner - must sign to prove they are alive. */
-  owner: TransactionSigner<TAccountOwner>;
-  vault?: Address<TAccountVault>;
-};
-
-export async function getProofOfLifeInstructionAsync<
-  TAccountOwner extends string,
-  TAccountVault extends string,
-  TProgramAddress extends Address = typeof PROOF_POL_PROGRAM_ADDRESS,
->(
-  input: ProofOfLifeAsyncInput<TAccountOwner, TAccountVault>,
-  config?: { programAddress?: TProgramAddress }
-): Promise<
-  ProofOfLifeInstruction<TProgramAddress, TAccountOwner, TAccountVault>
-> {
-  // Program address.
-  const programAddress = config?.programAddress ?? PROOF_POL_PROGRAM_ADDRESS;
-
-  // Original accounts.
-  const originalAccounts = {
-    owner: { value: input.owner ?? null, isWritable: true },
-    vault: { value: input.vault ?? null, isWritable: true },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedAccount
-  >;
-
-  // Resolve default values.
-  if (!accounts.vault.value) {
-    accounts.vault.value = await getProgramDerivedAddress({
-      programAddress,
-      seeds: [
-        getBytesEncoder().encode(new Uint8Array([118, 97, 117, 108, 116])),
-        getAddressEncoder().encode(expectAddress(accounts.owner.value)),
-      ],
-    });
-  }
-
-  const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
-  return Object.freeze({
-    accounts: [getAccountMeta(accounts.owner), getAccountMeta(accounts.vault)],
-    data: getProofOfLifeInstructionDataEncoder().encode({}),
-    programAddress,
-  } as ProofOfLifeInstruction<TProgramAddress, TAccountOwner, TAccountVault>);
 }
 
 export type ProofOfLifeInput<
