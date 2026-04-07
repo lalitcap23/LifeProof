@@ -15,18 +15,21 @@ import {
   createAssociatedTokenAccountIdempotentInstruction,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import bs58 from "bs58";
 
 import {
   getInitializeVaultInstructionAsync,
   getProofOfLifeInstruction,
   getCloseVaultInstructionAsync,
   getClaimVaultInstructionAsync,
-  fetchMaybeCommitmentVault,
-  fetchMaybeOwnerProfile,
+  getCommitmentVaultDiscriminatorBytes,
+  getOwnerProfileDiscriminatorBytes,
   type CommitmentVault,
   type OwnerProfile,
   PROOF_POL_PROGRAM_ADDRESS,
 } from "./index";
+import { getCommitmentVaultDecoder } from "./accounts/commitmentVault";
+import { getOwnerProfileDecoder } from "./accounts/ownerProfile";
 
 export { PROOF_POL_PROGRAM_ADDRESS };
 export type { CommitmentVault };
@@ -51,24 +54,24 @@ function createMockSigner(publicKey: PublicKey): TransactionSigner {
   return { address: publicKey.toBase58() as Address } as TransactionSigner;
 }
 
-function createRpcFetcher(connection: Connection) {
-  return {
-    getAccountInfo: (addr: Address, _config?: unknown) => ({
-      send: async () => {
-        const accountInfo = await connection.getAccountInfo(new PublicKey(addr));
-        if (!accountInfo) return { value: null };
-        return {
-          value: {
-            data: new Uint8Array(accountInfo.data),
-            executable: accountInfo.executable,
-            lamports: BigInt(accountInfo.lamports),
-            owner: accountInfo.owner.toBase58() as Address,
-            rentEpoch: BigInt(accountInfo.rentEpoch || 0),
-          },
-        };
-      },
-    }),
-  };
+// Direct byte decoder — avoids the @solana/kit RPC adapter which expects
+// base64-encoded data in [string, 'base64'] format, not raw Uint8Array.
+function decodeVaultBytes(data: Buffer | Uint8Array): CommitmentVault | null {
+  try {
+    return getCommitmentVaultDecoder().decode(new Uint8Array(data));
+  } catch (err) {
+    console.warn("CommitmentVault decode failed:", err);
+    return null;
+  }
+}
+
+function decodeOwnerProfileBytes(data: Buffer | Uint8Array): OwnerProfile | null {
+  try {
+    return getOwnerProfileDecoder().decode(new Uint8Array(data));
+  } catch (err) {
+    console.warn("OwnerProfile decode failed:", err);
+    return null;
+  }
 }
 
 function u64ToSeed(value: bigint): Uint8Array {
@@ -77,6 +80,14 @@ function u64ToSeed(value: bigint): Uint8Array {
   view.setBigUint64(0, value, true);
   return seed;
 }
+
+const COMMITMENT_VAULT_DISCRIMINATOR = Uint8Array.from(
+  getCommitmentVaultDiscriminatorBytes()
+);
+
+const OWNER_PROFILE_DISCRIMINATOR = Uint8Array.from(
+  getOwnerProfileDiscriminatorBytes()
+);
 
 export interface ProofPolClientConfig {
   connection: Connection;
@@ -107,6 +118,8 @@ export interface VaultAccountData {
   address: string;
   data: CommitmentVault;
 }
+
+const FALLBACK_VAULT_SCAN_COUNT = 16;
 
 export class ProofPolClient {
   private connection: Connection;
@@ -197,18 +210,25 @@ export class ProofPolClient {
 
   async fetchOwnerProfile(owner?: PublicKey): Promise<OwnerProfile | null> {
     const ownerProfilePda = this.getOwnerProfilePda(owner);
-    const rpc = createRpcFetcher(this.connection);
+    const accountInfo = await this.connection.getAccountInfo(ownerProfilePda);
 
-    try {
-      const account = await fetchMaybeOwnerProfile(
-        rpc as any,
-        ownerProfilePda.toBase58() as Address
-      );
-      return account.exists ? account.data : null;
-    } catch (error) {
-      console.error("Error fetching owner profile:", error);
+    if (!accountInfo) return null;
+
+    if (accountInfo.data.length < OWNER_PROFILE_DISCRIMINATOR.length) {
       return null;
     }
+
+    const discriminator = accountInfo.data.subarray(0, OWNER_PROFILE_DISCRIMINATOR.length);
+    const matchesDiscriminator = OWNER_PROFILE_DISCRIMINATOR.every(
+      (byte, index) => discriminator[index] === byte
+    );
+
+    if (!matchesDiscriminator) {
+      console.warn("OwnerProfile discriminator mismatch — stale program deployment?");
+      return null;
+    }
+
+    return decodeOwnerProfileBytes(accountInfo.data);
   }
 
   async getNextVaultId(owner?: PublicKey): Promise<bigint> {
@@ -216,33 +236,59 @@ export class ProofPolClient {
     return ownerProfile?.nextVaultId ?? BigInt(0);
   }
 
+  private async findNextAvailableVaultId(owner?: PublicKey): Promise<bigint> {
+    let vaultId = await this.getNextVaultId(owner);
+
+    for (let attempts = 0; attempts < 256; attempts += 1) {
+      const vaultPda = this.getVaultPda(vaultId, owner);
+      const existingVaultAccount = await this.connection.getAccountInfo(vaultPda);
+
+      if (!existingVaultAccount) {
+        return vaultId;
+      }
+
+      vaultId += BigInt(1);
+    }
+
+    throw new Error("Could not find a free vault id for this wallet.");
+  }
+
   async fetchVaultByAddress(vaultAddress: PublicKey | string): Promise<CommitmentVault | null> {
-    const rpc = createRpcFetcher(this.connection);
     const vaultAddressString =
       typeof vaultAddress === "string" ? vaultAddress : vaultAddress.toBase58();
+    const accountInfo = await this.connection.getAccountInfo(new PublicKey(vaultAddressString));
 
-    try {
-      const account = await fetchMaybeCommitmentVault(
-        rpc as any,
-        vaultAddressString as Address
-      );
-      return account.exists ? account.data : null;
-    } catch (error: any) {
-      if (error?.message?.includes("Failed to decode") || error?.name === "SolanaError") {
-        console.warn("Vault account failed to decode. Skipping stale account.", error.message);
-        return null;
-      }
-      console.error("Error fetching vault:", error);
+    if (!accountInfo) return null;
+
+    if (accountInfo.data.length < COMMITMENT_VAULT_DISCRIMINATOR.length) {
       return null;
     }
+
+    const discriminator = accountInfo.data.subarray(0, COMMITMENT_VAULT_DISCRIMINATOR.length);
+    const matchesDiscriminator = COMMITMENT_VAULT_DISCRIMINATOR.every(
+      (byte, index) => discriminator[index] === byte
+    );
+
+    if (!matchesDiscriminator) {
+      return null;
+    }
+
+    return decodeVaultBytes(accountInfo.data);
   }
 
   async fetchVaults(owner?: PublicKey): Promise<VaultAccountData[]> {
     const ownerKey = owner || this.publicKey;
+    const vaultDiscriminator = bs58.encode(COMMITMENT_VAULT_DISCRIMINATOR);
     const rawAccounts = await this.connection.getProgramAccounts(
       new PublicKey(PROOF_POL_PROGRAM_ADDRESS),
       {
         filters: [
+          {
+            memcmp: {
+              offset: 0,
+              bytes: vaultDiscriminator,
+            },
+          },
           {
             memcmp: {
               offset: 8,
@@ -253,12 +299,25 @@ export class ProofPolClient {
       }
     );
 
+    const ownerProfile = await this.fetchOwnerProfile(ownerKey);
+    const scanCount = Number(
+      ownerProfile?.nextVaultId && ownerProfile.nextVaultId > BigInt(FALLBACK_VAULT_SCAN_COUNT)
+        ? ownerProfile.nextVaultId
+        : BigInt(FALLBACK_VAULT_SCAN_COUNT)
+    );
+
+    const candidateAddresses = new Set(rawAccounts.map((account) => account.pubkey.toBase58()));
+
+    for (let index = 0; index < scanCount; index += 1) {
+      candidateAddresses.add(this.getVaultPda(index, ownerKey).toBase58());
+    }
+
     const decodedVaults = await Promise.all(
-      rawAccounts.map(async (account) => {
-        const data = await this.fetchVaultByAddress(account.pubkey);
-        if (!data) return null;
+      Array.from(candidateAddresses).map(async (vaultAddress) => {
+        const data = await this.fetchVaultByAddress(vaultAddress);
+        if (!data || data.owner !== ownerKey.toBase58()) return null;
         return {
-          address: account.pubkey.toBase58(),
+          address: vaultAddress,
           data,
         };
       })
@@ -272,15 +331,8 @@ export class ProofPolClient {
   async initializeVault(params: InitializeVaultParams): Promise<string> {
     const owner = createMockSigner(this.publicKey);
     const ownerProfilePda = this.getOwnerProfilePda();
-    const nextVaultId = await this.getNextVaultId();
+    const nextVaultId = await this.findNextAvailableVaultId();
     const vaultPda = this.getVaultPda(nextVaultId);
-
-    const existingVaultAccount = await this.connection.getAccountInfo(vaultPda);
-    if (existingVaultAccount) {
-      throw new Error(
-        `Vault address collision for vault #${nextVaultId.toString()} (${vaultPda.toBase58()}).`
-      );
-    }
 
     const usdcMintPk = new PublicKey(params.usdcMint);
     const platformWalletPubkey = new PublicKey(
@@ -308,6 +360,7 @@ export class ProofPolClient {
       vault: address(vaultPda.toBase58()),
       mint: address(params.mint),
       usdcMint: address(params.usdcMint),
+      vaultId: nextVaultId,
       stakeAmount: params.stakeAmount,
       checkinInterval: params.checkinIntervalSeconds,
     });

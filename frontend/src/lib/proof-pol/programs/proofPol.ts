@@ -21,7 +21,7 @@ import {
 } from '../instructions';
 
 export const PROOF_POL_PROGRAM_ADDRESS =
-  'aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e' as Address<'aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e'>;
+  'DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof' as Address<'DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof'>;
 
 export enum ProofPolAccount {
   CommitmentVault,
@@ -120,7 +120,7 @@ export function identifyProofPolInstruction(
 }
 
 export type ParsedProofPolInstruction<
-  TProgram extends string = 'aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e',
+  TProgram extends string = 'DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof',
 > =
   | ({
       instructionType: ProofPolInstruction.ClaimVault;

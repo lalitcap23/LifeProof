@@ -15,13 +15,9 @@ pub struct ClaimVault<'info> {
     #[account(mut)]
     pub executor: Signer<'info>,
 
-    /// CHECK: validated via `has_one = nominee` on the vault account.
+    /// CHECK: validated via `has_one = nominee` 
     pub nominee: UncheckedAccount<'info>,
 
-    /// The original vault owner — used only for PDA seed derivation.
-    /// which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
-    ///
-    /// as `owner` and, if seeds still resolve, bypass the stored-owner check.
     /// CHECK: address verified via seeds derivation AND `has_one = owner` on vault.
     pub owner: UncheckedAccount<'info>,
 

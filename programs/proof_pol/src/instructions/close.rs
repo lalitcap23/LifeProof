@@ -11,7 +11,7 @@ use crate::state::CommitmentVault;
 
 #[derive(Accounts)]
 pub struct CloseVault<'info> {
-    /// The vault owner — signs the transaction and reclaims all tokens + rent.
+    /// The vault owner
     #[account(mut)]
     pub owner: Signer<'info>,
 
@@ -26,7 +26,6 @@ pub struct CloseVault<'info> {
     pub vault: Account<'info, CommitmentVault>,
 
     /// The SPL token mint that was staked.
-    /// Validated implicitly via `has_one = mint` on the vault above.
     pub mint: Account<'info, Mint>,
 
     /// Owner's Associated Token Account — receives the staked tokens back.

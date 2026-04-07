@@ -257,7 +257,7 @@ describe("proof_of_life (simple tests)", () => {
 // BANKRUN TIME-TRAVEL SUITE
 describe("proof_of_life (bankrun time-travel)", () => {
   const PROGRAM_ID = new PublicKey(
-    "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e"
+    "DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof"
   );
 
   // Bankrun context

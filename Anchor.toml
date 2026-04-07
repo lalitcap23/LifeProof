@@ -5,11 +5,11 @@ package_manager = "yarn"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-proof_pol = "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e"
-
 [programs.devnet]
-proof_pol = "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e"
+proof_pol = "DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof"
+
+[programs.localnet]
+proof_pol = "DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof"
 
 [registry]
 url = "https://api.apr.dev"

@@ -9,6 +9,7 @@ use crate::error::ErrorCode;
 use crate::state::{CommitmentVault, OwnerProfile};
 
 #[derive(Accounts)]
+#[instruction(vault_id: u64)]
 pub struct InitializeVault<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -31,7 +32,7 @@ pub struct InitializeVault<'info> {
         init,
         payer  = owner,
         space  = 8 + CommitmentVault::INIT_SPACE,
-        seeds  = [VAULT_SEED, owner.key().as_ref(), &owner_profile.next_vault_id.to_le_bytes()],
+        seeds  = [VAULT_SEED, owner.key().as_ref(), &vault_id.to_le_bytes()],
         bump,
     )]
     pub vault: Account<'info, CommitmentVault>,
@@ -88,6 +89,7 @@ pub struct InitializeVault<'info> {
 ///                        Pass `0` to use the 24-hour default.
 pub fn handler(
     ctx: Context<InitializeVault>,
+    vault_id: u64,
     stake_amount: u64,
     checkin_interval: u64,
 ) -> Result<()> {
@@ -100,10 +102,9 @@ pub fn handler(
         owner_profile.bump = ctx.bumps.owner_profile;
     }
 
-    let vault_id = owner_profile.next_vault_id;
-
     require!(owner_key != nominee_key,         ErrorCode::SelfNominee);
     require!(stake_amount >= MIN_STAKE_AMOUNT, ErrorCode::StakeTooLow);
+    require!(vault_id >= owner_profile.next_vault_id, ErrorCode::Overflow);
 
     let interval = if checkin_interval == 0 {
         DEFAULT_CHECKIN_INTERVAL
@@ -145,7 +146,7 @@ pub fn handler(
         .checked_add(interval as i64)
         .ok_or(ErrorCode::Overflow)?;
 
-    let vault              = &mut ctx.accounts.vault;
+    let vault      = &mut ctx.accounts.vault;
     vault.owner            = owner_key;
     vault.vault_id         = vault_id;
     vault.nominee          = nominee_key;
@@ -157,8 +158,7 @@ pub fn handler(
     vault.is_active        = true;
     vault.bump             = ctx.bumps.vault;
 
-    owner_profile.next_vault_id = owner_profile
-        .next_vault_id
+    owner_profile.next_vault_id = vault_id
         .checked_add(1)
         .ok_or(ErrorCode::Overflow)?;
 

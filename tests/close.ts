@@ -369,7 +369,7 @@ describe("close_vault – deadline (bankrun time-travel)", () => {
 
     // ─── Programme ID (matches Anchor.toml) ──────────────────────────────────
     const PROGRAM_ID = new anchor.web3.PublicKey(
-        "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e"
+        "DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof"
     );
 
     // Bankrun context shared across all tests in this suite

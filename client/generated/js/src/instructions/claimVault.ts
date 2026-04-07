@@ -144,12 +144,6 @@ export type ClaimVaultAsyncInput<
   /** permissionless keeper. */
   executor: TransactionSigner<TAccountExecutor>;
   nominee: Address<TAccountNominee>;
-  /**
-   * The original vault owner — used only for PDA seed derivation.
-   * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
-   *
-   * as `owner` and, if seeds still resolve, bypass the stored-owner check.
-   */
   owner: Address<TAccountOwner>;
   /**
    * The vault PDA state account.
@@ -353,12 +347,6 @@ export type ClaimVaultInput<
   /** permissionless keeper. */
   executor: TransactionSigner<TAccountExecutor>;
   nominee: Address<TAccountNominee>;
-  /**
-   * The original vault owner — used only for PDA seed derivation.
-   * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
-   *
-   * as `owner` and, if seeds still resolve, bypass the stored-owner check.
-   */
   owner: Address<TAccountOwner>;
   /**
    * The vault PDA state account.
@@ -520,12 +508,6 @@ export type ParsedClaimVaultInstruction<
     /** permissionless keeper. */
     executor: TAccountMetas[0];
     nominee: TAccountMetas[1];
-    /**
-     * The original vault owner — used only for PDA seed derivation.
-     * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
-     *
-     * as `owner` and, if seeds still resolve, bypass the stored-owner check.
-     */
     owner: TAccountMetas[2];
     /**
      * The vault PDA state account.

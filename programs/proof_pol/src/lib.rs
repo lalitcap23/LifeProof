@@ -9,7 +9,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e");
+declare_id!("DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof");
 
 
 #[program]
@@ -20,10 +20,11 @@ pub mod proof_pol {
     /// * `checkin_interval` – Seconds between required sign-ins (0 = 24 h default).
     pub fn initialize_vault(
         ctx: Context<InitializeVault>,
+        vault_id: u64,
         stake_amount: u64,
         checkin_interval: u64,
     ) -> Result<()> {
-        initialize_vault::handler(ctx, stake_amount, checkin_interval)
+        initialize_vault::handler(ctx, vault_id, stake_amount, checkin_interval)
     }
 
     /// Submit proof-of-life to reset the deadline.

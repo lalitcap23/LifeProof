@@ -37,6 +37,7 @@ import {
 import { PROOF_POL_PROGRAM_ADDRESS } from '../programs';
 import {
   expectAddress,
+  expectSome,
   getAccountMetaFactory,
   type ResolvedAccount,
 } from '../shared';
@@ -125,11 +126,13 @@ export type InitializeVaultInstruction<
 
 export type InitializeVaultInstructionData = {
   discriminator: ReadonlyUint8Array;
+  vaultId: bigint;
   stakeAmount: bigint;
   checkinInterval: bigint;
 };
 
 export type InitializeVaultInstructionDataArgs = {
+  vaultId: number | bigint;
   stakeAmount: number | bigint;
   checkinInterval: number | bigint;
 };
@@ -138,6 +141,7 @@ export function getInitializeVaultInstructionDataEncoder(): FixedSizeEncoder<Ini
   return transformEncoder(
     getStructEncoder([
       ['discriminator', fixEncoderSize(getBytesEncoder(), 8)],
+      ['vaultId', getU64Encoder()],
       ['stakeAmount', getU64Encoder()],
       ['checkinInterval', getU64Encoder()],
     ]),
@@ -148,6 +152,7 @@ export function getInitializeVaultInstructionDataEncoder(): FixedSizeEncoder<Ini
 export function getInitializeVaultInstructionDataDecoder(): FixedSizeDecoder<InitializeVaultInstructionData> {
   return getStructDecoder([
     ['discriminator', fixDecoderSize(getBytesDecoder(), 8)],
+    ['vaultId', getU64Decoder()],
     ['stakeAmount', getU64Decoder()],
     ['checkinInterval', getU64Decoder()],
   ]);
@@ -183,7 +188,7 @@ export type InitializeVaultAsyncInput<
   nominee: Address<TAccountNominee>;
   ownerProfile?: Address<TAccountOwnerProfile>;
   /** PDA vault state account — created and rent-funded by `owner`. */
-  vault: Address<TAccountVault>;
+  vault?: Address<TAccountVault>;
   /** Any valid SPL mint is accepted */
   mint: Address<TAccountMint>;
   /** Anchor validates: correct mint + correct owner authority. */
@@ -201,6 +206,7 @@ export type InitializeVaultAsyncInput<
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
+  vaultId: InitializeVaultInstructionDataArgs['vaultId'];
   stakeAmount: InitializeVaultInstructionDataArgs['stakeAmount'];
   checkinInterval: InitializeVaultInstructionDataArgs['checkinInterval'];
 };
@@ -300,6 +306,16 @@ export async function getInitializeVaultInstructionAsync<
           ])
         ),
         getAddressEncoder().encode(expectAddress(accounts.owner.value)),
+      ],
+    });
+  }
+  if (!accounts.vault.value) {
+    accounts.vault.value = await getProgramDerivedAddress({
+      programAddress,
+      seeds: [
+        getBytesEncoder().encode(new Uint8Array([118, 97, 117, 108, 116])),
+        getAddressEncoder().encode(expectAddress(accounts.owner.value)),
+        getU64Encoder().encode(expectSome(args.vaultId)),
       ],
     });
   }
@@ -469,6 +485,7 @@ export type InitializeVaultInput<
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
+  vaultId: InitializeVaultInstructionDataArgs['vaultId'];
   stakeAmount: InitializeVaultInstructionDataArgs['stakeAmount'];
   checkinInterval: InitializeVaultInstructionDataArgs['checkinInterval'];
 };

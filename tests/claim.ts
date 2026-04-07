@@ -277,7 +277,7 @@ describe("claim vault (simple tests)", () => {
 // BANKRUN TIME-TRAVEL SUITE – Full claim testing with clock manipulation
 describe("claim vault (bankrun time-travel)", () => {
   const PROGRAM_ID = new PublicKey(
-    "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e"
+    "DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof"
   );
 
   // Bankrun context

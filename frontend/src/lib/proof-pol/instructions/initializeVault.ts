@@ -125,11 +125,13 @@ export type InitializeVaultInstruction<
 
 export type InitializeVaultInstructionData = {
   discriminator: ReadonlyUint8Array;
+  vaultId: bigint;
   stakeAmount: bigint;
   checkinInterval: bigint;
 };
 
 export type InitializeVaultInstructionDataArgs = {
+  vaultId: number | bigint;
   stakeAmount: number | bigint;
   checkinInterval: number | bigint;
 };
@@ -138,6 +140,7 @@ export function getInitializeVaultInstructionDataEncoder(): FixedSizeEncoder<Ini
   return transformEncoder(
     getStructEncoder([
       ['discriminator', fixEncoderSize(getBytesEncoder(), 8)],
+      ['vaultId', getU64Encoder()],
       ['stakeAmount', getU64Encoder()],
       ['checkinInterval', getU64Encoder()],
     ]),
@@ -148,6 +151,7 @@ export function getInitializeVaultInstructionDataEncoder(): FixedSizeEncoder<Ini
 export function getInitializeVaultInstructionDataDecoder(): FixedSizeDecoder<InitializeVaultInstructionData> {
   return getStructDecoder([
     ['discriminator', fixDecoderSize(getBytesDecoder(), 8)],
+    ['vaultId', getU64Decoder()],
     ['stakeAmount', getU64Decoder()],
     ['checkinInterval', getU64Decoder()],
   ]);
@@ -201,6 +205,7 @@ export type InitializeVaultAsyncInput<
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
+  vaultId: InitializeVaultInstructionDataArgs['vaultId'];
   stakeAmount: InitializeVaultInstructionDataArgs['stakeAmount'];
   checkinInterval: InitializeVaultInstructionDataArgs['checkinInterval'];
 };
@@ -469,6 +474,7 @@ export type InitializeVaultInput<
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
+  vaultId: InitializeVaultInstructionDataArgs['vaultId'];
   stakeAmount: InitializeVaultInstructionDataArgs['stakeAmount'];
   checkinInterval: InitializeVaultInstructionDataArgs['checkinInterval'];
 };

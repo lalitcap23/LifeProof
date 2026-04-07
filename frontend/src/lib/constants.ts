@@ -2,7 +2,7 @@ import { Connection, clusterApiUrl } from "@solana/web3.js";
 
 export const PROGRAM_ID =
   process.env.NEXT_PUBLIC_PROGRAM_ID ||
-  "aosGKFX4wB17YnkDjrCTyE4imXXadnwjxe2jsYWEY4e";
+  "DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof";
 
 export const CLUSTER =
   (process.env.NEXT_PUBLIC_CLUSTER as "devnet" | "mainnet-beta" | "testnet") ||
