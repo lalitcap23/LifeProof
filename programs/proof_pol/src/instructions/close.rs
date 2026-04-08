@@ -29,8 +29,7 @@ pub struct CloseVault<'info> {
     pub mint: Account<'info, Mint>,
 
     /// Owner's Associated Token Account — receives the staked tokens back.
-    /// `init_if_needed` handles the rare edge-case where the owner closed
-    /// their ATA after the vault was initialized.
+    // init_if_need if the ownr deleted the ata 
     #[account(
         init_if_needed,
         payer                       = owner,
@@ -40,8 +39,6 @@ pub struct CloseVault<'info> {
     pub owner_ata: Account<'info, TokenAccount>,
 
     /// Vault's Associated Token Account — holds the staked tokens.
-    /// Anchor validates the address matches (vault PDA, mint).
-    /// The vault PDA is the sole authority; only PDA-signed CPIs can move tokens.
     #[account(
         mut,
         associated_token::mint      = mint,
@@ -55,21 +52,8 @@ pub struct CloseVault<'info> {
 }
 
 
-/// Owner voluntarily closes the vault and retrieves their staked tokens.
-/// Only valid while the deadline has NOT yet passed — i.e. while the owner is
-/// still in good standing.  Once the deadline lapses the vault can only be
-/// claimed by the nominee.
-/// Steps executed:
-///   1. Guard: vault must be active.
-///   2. Guard: deadline must not have passed yet.
-///   3. CPI → SPL Token: transfer all tokens from vault ATA → owner ATA
-///              (vault PDA signs via stored bump seed).
-///   4. CPI → SPL Token: close the now-empty vault ATA; rent goes to owner.
-///   5. Anchor closes the vault PDA state account via `close = owner`
-///              (happens automatically on handler exit).
-/// Reverts if:
-///   * The vault is not active.
-///   * The deadline has already passed (nominee's claim window is open)ff.
+/// CPI: transfer vault tokens → owner; close ATA; PDA closes to owner.
+
 pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
 
     require!(ctx.accounts.vault.is_active, ErrorCode::VaultInactive);
@@ -95,7 +79,7 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
     // Snapshot the token balance before any CPI modifies the account.
     let token_amount = ctx.accounts.vault_ata.amount;
 
-    // CPI 1 transfer tokens: vault ATA → owner ATA
+    // CPI  transfer tokens: vault ATA → owner ATA
 
     transfer(
         CpiContext::new_with_signer(
@@ -110,7 +94,7 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
         token_amount,
     )?;
 
-    //  CPI 2 close vault ATA: rent-lamports returned to owner
+    //  CPI  close vault ATA: rent-lamports returned to owner
 
     close_account(CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info(),
@@ -129,7 +113,5 @@ pub fn handler(ctx: Context<CloseVault>) -> Result<()> {
         ctx.accounts.mint.key(),
     );
 
-    // Vault PDA state account is closed automatically by the
-    // `close = owner` constraint once this handler returns.
     Ok(())
 }

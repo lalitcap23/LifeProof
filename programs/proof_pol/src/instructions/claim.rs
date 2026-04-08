@@ -21,13 +21,6 @@ pub struct ClaimVault<'info> {
     /// CHECK: address verified via seeds derivation AND `has_one = owner` on vault.
     pub owner: UncheckedAccount<'info>,
 
-    /// The vault PDA state account.
-    /// `seeds + bump`     — derives and verifies the PDA address.
-    /// `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-    /// `has_one = nominee`— enforces payout destination from vault state.
-    /// `has_one = mint`   — ensures the correct token mint account is passed.
-    /// `close   = nominee`— Anchor transfers vault-state rent to nominee
-    ///automatically once the handler returns successfully.
     #[account(
         mut,
         seeds   = [VAULT_SEED, owner.key().as_ref(), &vault.vault_id.to_le_bytes()],
@@ -39,12 +32,9 @@ pub struct ClaimVault<'info> {
     )]
     pub vault: Account<'info, CommitmentVault>,
 
-    /// The SPL token mint that was staked.
     /// Validated implicitly via `has_one = mint` on the vault above.
     pub mint: Account<'info, Mint>,
 
-    /// Nominee's Associated Token Account — receives the staked tokens.
-    ///
     /// LOOPHOLE-3 FIX: `init_if_needed` with explicit `associated_token::mint`
     /// and `associated_token::authority` constraints forces Anchor to validate
     /// the existing account's mint and owner fields even when the account
@@ -59,8 +49,6 @@ pub struct ClaimVault<'info> {
     )]
     pub nominee_ata: Account<'info, TokenAccount>,
 
-    /// Vault's Associated Token Account — holds the staked tokens.
-    ///
     /// LOOPHOLE-1 FIX: `associated_token::authority = vault` means the vault
     /// PDA is the SOLE authority over this ATA.  The nominee (or anyone else)
     /// cannot call `spl_token::transfer` or `spl_token::close_account` directly
@@ -124,8 +112,6 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
         ErrorCode::ClaimGracePeriodNotPassed
     );
 
-    //  vault ATA must not be empty [LOOPHOLE-5] 
-    //
     // Prevents a nominee from claiming a vault whose ATA was already drained
     // (e.g., due to a bug elsewhere) and only obtaining the rent lamports.
 

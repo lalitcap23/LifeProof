@@ -16,8 +16,6 @@ declare_id!("DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof");
 pub mod proof_pol {
     use super::*;
 
-    /// * `stake_amount`     – Raw SPL token units to lock (minimum MIN_STAKE_AMOUNT).
-    /// * `checkin_interval` – Seconds between required sign-ins (0 = 24 h default).
     pub fn initialize_vault(
         ctx: Context<InitializeVault>,
         vault_id: u64,
@@ -44,3 +42,4 @@ pub mod proof_pol {
         close::handler(ctx)
     }
 }
+

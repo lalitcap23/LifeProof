@@ -29,10 +29,6 @@ pub const PLATFORM_FEE_USDC: u64 = 1_000_000;
 // Supported Stake Token Mints (Solana Mainnet)
 // ---------------------------------------------------------------------------
 
-/// Native SOL wrapped as an SPL token (wSOL).
-/// Deposit flow: wrap SOL → wSOL ATA → vault.
-pub const MINT_WSOL: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
-
 /// Circle USDC — native Solana mint (6 decimals).
 pub const MINT_USDC: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 

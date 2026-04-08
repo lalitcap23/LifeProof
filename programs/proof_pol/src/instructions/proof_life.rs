@@ -20,11 +20,7 @@ pub struct ProofOfLife<'info> {
 }
 
 
-/// The owner signs this transaction to prove they are alive.
 /// Resets `last_checkin` to now, and recalculates the next deadline.
-/// Reverts if:
-///   * The vault is not active.
-///   * The deadline has already passed (nominee can claim at that point).
 pub fn handler(ctx: Context<ProofOfLife>) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
 

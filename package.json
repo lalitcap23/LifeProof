@@ -10,10 +10,12 @@
     "@codama/renderers": "^1.0.34",
     "@codama/visitors-core": "^1.5.1",
     "@coral-xyz/anchor": "^0.32.1",
+    "@kamino-finance/klend-sdk": "^7.3.22",
     "@metaplex-foundation/umi": "^1.5.1",
     "@metaplex-foundation/umi-bundle-defaults": "^1.5.1",
     "anchor-bankrun": "^0.5.0",
     "codama": "^1.5.1",
+    "decimal.js": "^10.6.0",
     "install": "^0.13.0",
     "npm": "^11.12.0",
     "solana-bankrun": "^0.4.0"
