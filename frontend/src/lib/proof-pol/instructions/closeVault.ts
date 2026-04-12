@@ -54,6 +54,16 @@ export type CloseVaultInstruction<
   TAccountMint extends string | AccountMeta<string> = string,
   TAccountOwnerAta extends string | AccountMeta<string> = string,
   TAccountVaultAta extends string | AccountMeta<string> = string,
+  TAccountVaultKTokenAta extends string | AccountMeta<string> = string,
+  TAccountKTokenMint extends string | AccountMeta<string> = string,
+  TAccountKaminoReserve extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingMarket extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingMarketAuthority extends string | AccountMeta<string> =
+    string,
+  TAccountKaminoLiquiditySupply extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingProgram extends string | AccountMeta<string> = string,
+  TAccountInstructionSysvar extends string | AccountMeta<string> =
+    'Sysvar1nstructions1111111111111111111111111',
   TAccountTokenProgram extends string | AccountMeta<string> =
     'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
@@ -81,6 +91,30 @@ export type CloseVaultInstruction<
       TAccountVaultAta extends string
         ? WritableAccount<TAccountVaultAta>
         : TAccountVaultAta,
+      TAccountVaultKTokenAta extends string
+        ? WritableAccount<TAccountVaultKTokenAta>
+        : TAccountVaultKTokenAta,
+      TAccountKTokenMint extends string
+        ? ReadonlyAccount<TAccountKTokenMint>
+        : TAccountKTokenMint,
+      TAccountKaminoReserve extends string
+        ? WritableAccount<TAccountKaminoReserve>
+        : TAccountKaminoReserve,
+      TAccountKaminoLendingMarket extends string
+        ? ReadonlyAccount<TAccountKaminoLendingMarket>
+        : TAccountKaminoLendingMarket,
+      TAccountKaminoLendingMarketAuthority extends string
+        ? ReadonlyAccount<TAccountKaminoLendingMarketAuthority>
+        : TAccountKaminoLendingMarketAuthority,
+      TAccountKaminoLiquiditySupply extends string
+        ? WritableAccount<TAccountKaminoLiquiditySupply>
+        : TAccountKaminoLiquiditySupply,
+      TAccountKaminoLendingProgram extends string
+        ? ReadonlyAccount<TAccountKaminoLendingProgram>
+        : TAccountKaminoLendingProgram,
+      TAccountInstructionSysvar extends string
+        ? ReadonlyAccount<TAccountInstructionSysvar>
+        : TAccountInstructionSysvar,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
         : TAccountTokenProgram,
@@ -127,30 +161,31 @@ export type CloseVaultAsyncInput<
   TAccountMint extends string = string,
   TAccountOwnerAta extends string = string,
   TAccountVaultAta extends string = string,
+  TAccountVaultKTokenAta extends string = string,
+  TAccountKTokenMint extends string = string,
+  TAccountKaminoReserve extends string = string,
+  TAccountKaminoLendingMarket extends string = string,
+  TAccountKaminoLendingMarketAuthority extends string = string,
+  TAccountKaminoLiquiditySupply extends string = string,
+  TAccountKaminoLendingProgram extends string = string,
+  TAccountInstructionSysvar extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  /** The vault owner — signs the transaction and reclaims all tokens + rent. */
   owner: TransactionSigner<TAccountOwner>;
   vault: Address<TAccountVault>;
-  /**
-   * The SPL token mint that was staked.
-   * Validated implicitly via `has_one = mint` on the vault above.
-   */
   mint: Address<TAccountMint>;
-  /**
-   * Owner's Associated Token Account — receives the staked tokens back.
-   * `init_if_needed` handles the rare edge-case where the owner closed
-   * their ATA after the vault was initialized.
-   */
   ownerAta?: Address<TAccountOwnerAta>;
-  /**
-   * Vault's Associated Token Account — holds the staked tokens.
-   * Anchor validates the address matches (vault PDA, mint).
-   * The vault PDA is the sole authority; only PDA-signed CPIs can move tokens.
-   */
   vaultAta?: Address<TAccountVaultAta>;
+  vaultKTokenAta?: Address<TAccountVaultKTokenAta>;
+  kTokenMint: Address<TAccountKTokenMint>;
+  kaminoReserve: Address<TAccountKaminoReserve>;
+  kaminoLendingMarket: Address<TAccountKaminoLendingMarket>;
+  kaminoLendingMarketAuthority: Address<TAccountKaminoLendingMarketAuthority>;
+  kaminoLiquiditySupply: Address<TAccountKaminoLiquiditySupply>;
+  kaminoLendingProgram: Address<TAccountKaminoLendingProgram>;
+  instructionSysvar?: Address<TAccountInstructionSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -162,6 +197,14 @@ export async function getCloseVaultInstructionAsync<
   TAccountMint extends string,
   TAccountOwnerAta extends string,
   TAccountVaultAta extends string,
+  TAccountVaultKTokenAta extends string,
+  TAccountKTokenMint extends string,
+  TAccountKaminoReserve extends string,
+  TAccountKaminoLendingMarket extends string,
+  TAccountKaminoLendingMarketAuthority extends string,
+  TAccountKaminoLiquiditySupply extends string,
+  TAccountKaminoLendingProgram extends string,
+  TAccountInstructionSysvar extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
@@ -173,6 +216,14 @@ export async function getCloseVaultInstructionAsync<
     TAccountMint,
     TAccountOwnerAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -186,6 +237,14 @@ export async function getCloseVaultInstructionAsync<
     TAccountMint,
     TAccountOwnerAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -201,6 +260,29 @@ export async function getCloseVaultInstructionAsync<
     mint: { value: input.mint ?? null, isWritable: false },
     ownerAta: { value: input.ownerAta ?? null, isWritable: true },
     vaultAta: { value: input.vaultAta ?? null, isWritable: true },
+    vaultKTokenAta: { value: input.vaultKTokenAta ?? null, isWritable: true },
+    kTokenMint: { value: input.kTokenMint ?? null, isWritable: false },
+    kaminoReserve: { value: input.kaminoReserve ?? null, isWritable: true },
+    kaminoLendingMarket: {
+      value: input.kaminoLendingMarket ?? null,
+      isWritable: false,
+    },
+    kaminoLendingMarketAuthority: {
+      value: input.kaminoLendingMarketAuthority ?? null,
+      isWritable: false,
+    },
+    kaminoLiquiditySupply: {
+      value: input.kaminoLiquiditySupply ?? null,
+      isWritable: true,
+    },
+    kaminoLendingProgram: {
+      value: input.kaminoLendingProgram ?? null,
+      isWritable: false,
+    },
+    instructionSysvar: {
+      value: input.instructionSysvar ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     associatedTokenProgram: {
       value: input.associatedTokenProgram ?? null,
@@ -248,6 +330,27 @@ export async function getCloseVaultInstructionAsync<
       ],
     });
   }
+  if (!accounts.vaultKTokenAta.value) {
+    accounts.vaultKTokenAta.value = await getProgramDerivedAddress({
+      programAddress:
+        'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL' as Address<'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'>,
+      seeds: [
+        getAddressEncoder().encode(expectAddress(accounts.vault.value)),
+        getBytesEncoder().encode(
+          new Uint8Array([
+            6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235,
+            121, 172, 28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133,
+            126, 255, 0, 169,
+          ])
+        ),
+        getAddressEncoder().encode(expectAddress(accounts.kTokenMint.value)),
+      ],
+    });
+  }
+  if (!accounts.instructionSysvar.value) {
+    accounts.instructionSysvar.value =
+      'Sysvar1nstructions1111111111111111111111111' as Address<'Sysvar1nstructions1111111111111111111111111'>;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' as Address<'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'>;
@@ -269,6 +372,14 @@ export async function getCloseVaultInstructionAsync<
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.ownerAta),
       getAccountMeta(accounts.vaultAta),
+      getAccountMeta(accounts.vaultKTokenAta),
+      getAccountMeta(accounts.kTokenMint),
+      getAccountMeta(accounts.kaminoReserve),
+      getAccountMeta(accounts.kaminoLendingMarket),
+      getAccountMeta(accounts.kaminoLendingMarketAuthority),
+      getAccountMeta(accounts.kaminoLiquiditySupply),
+      getAccountMeta(accounts.kaminoLendingProgram),
+      getAccountMeta(accounts.instructionSysvar),
       getAccountMeta(accounts.tokenProgram),
       getAccountMeta(accounts.associatedTokenProgram),
       getAccountMeta(accounts.systemProgram),
@@ -282,6 +393,14 @@ export async function getCloseVaultInstructionAsync<
     TAccountMint,
     TAccountOwnerAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -294,30 +413,31 @@ export type CloseVaultInput<
   TAccountMint extends string = string,
   TAccountOwnerAta extends string = string,
   TAccountVaultAta extends string = string,
+  TAccountVaultKTokenAta extends string = string,
+  TAccountKTokenMint extends string = string,
+  TAccountKaminoReserve extends string = string,
+  TAccountKaminoLendingMarket extends string = string,
+  TAccountKaminoLendingMarketAuthority extends string = string,
+  TAccountKaminoLiquiditySupply extends string = string,
+  TAccountKaminoLendingProgram extends string = string,
+  TAccountInstructionSysvar extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  /** The vault owner — signs the transaction and reclaims all tokens + rent. */
   owner: TransactionSigner<TAccountOwner>;
   vault: Address<TAccountVault>;
-  /**
-   * The SPL token mint that was staked.
-   * Validated implicitly via `has_one = mint` on the vault above.
-   */
   mint: Address<TAccountMint>;
-  /**
-   * Owner's Associated Token Account — receives the staked tokens back.
-   * `init_if_needed` handles the rare edge-case where the owner closed
-   * their ATA after the vault was initialized.
-   */
   ownerAta: Address<TAccountOwnerAta>;
-  /**
-   * Vault's Associated Token Account — holds the staked tokens.
-   * Anchor validates the address matches (vault PDA, mint).
-   * The vault PDA is the sole authority; only PDA-signed CPIs can move tokens.
-   */
   vaultAta: Address<TAccountVaultAta>;
+  vaultKTokenAta: Address<TAccountVaultKTokenAta>;
+  kTokenMint: Address<TAccountKTokenMint>;
+  kaminoReserve: Address<TAccountKaminoReserve>;
+  kaminoLendingMarket: Address<TAccountKaminoLendingMarket>;
+  kaminoLendingMarketAuthority: Address<TAccountKaminoLendingMarketAuthority>;
+  kaminoLiquiditySupply: Address<TAccountKaminoLiquiditySupply>;
+  kaminoLendingProgram: Address<TAccountKaminoLendingProgram>;
+  instructionSysvar?: Address<TAccountInstructionSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -329,6 +449,14 @@ export function getCloseVaultInstruction<
   TAccountMint extends string,
   TAccountOwnerAta extends string,
   TAccountVaultAta extends string,
+  TAccountVaultKTokenAta extends string,
+  TAccountKTokenMint extends string,
+  TAccountKaminoReserve extends string,
+  TAccountKaminoLendingMarket extends string,
+  TAccountKaminoLendingMarketAuthority extends string,
+  TAccountKaminoLiquiditySupply extends string,
+  TAccountKaminoLendingProgram extends string,
+  TAccountInstructionSysvar extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
@@ -340,6 +468,14 @@ export function getCloseVaultInstruction<
     TAccountMint,
     TAccountOwnerAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -352,6 +488,14 @@ export function getCloseVaultInstruction<
   TAccountMint,
   TAccountOwnerAta,
   TAccountVaultAta,
+  TAccountVaultKTokenAta,
+  TAccountKTokenMint,
+  TAccountKaminoReserve,
+  TAccountKaminoLendingMarket,
+  TAccountKaminoLendingMarketAuthority,
+  TAccountKaminoLiquiditySupply,
+  TAccountKaminoLendingProgram,
+  TAccountInstructionSysvar,
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
   TAccountSystemProgram
@@ -366,6 +510,29 @@ export function getCloseVaultInstruction<
     mint: { value: input.mint ?? null, isWritable: false },
     ownerAta: { value: input.ownerAta ?? null, isWritable: true },
     vaultAta: { value: input.vaultAta ?? null, isWritable: true },
+    vaultKTokenAta: { value: input.vaultKTokenAta ?? null, isWritable: true },
+    kTokenMint: { value: input.kTokenMint ?? null, isWritable: false },
+    kaminoReserve: { value: input.kaminoReserve ?? null, isWritable: true },
+    kaminoLendingMarket: {
+      value: input.kaminoLendingMarket ?? null,
+      isWritable: false,
+    },
+    kaminoLendingMarketAuthority: {
+      value: input.kaminoLendingMarketAuthority ?? null,
+      isWritable: false,
+    },
+    kaminoLiquiditySupply: {
+      value: input.kaminoLiquiditySupply ?? null,
+      isWritable: true,
+    },
+    kaminoLendingProgram: {
+      value: input.kaminoLendingProgram ?? null,
+      isWritable: false,
+    },
+    instructionSysvar: {
+      value: input.instructionSysvar ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     associatedTokenProgram: {
       value: input.associatedTokenProgram ?? null,
@@ -379,6 +546,10 @@ export function getCloseVaultInstruction<
   >;
 
   // Resolve default values.
+  if (!accounts.instructionSysvar.value) {
+    accounts.instructionSysvar.value =
+      'Sysvar1nstructions1111111111111111111111111' as Address<'Sysvar1nstructions1111111111111111111111111'>;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' as Address<'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'>;
@@ -400,6 +571,14 @@ export function getCloseVaultInstruction<
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.ownerAta),
       getAccountMeta(accounts.vaultAta),
+      getAccountMeta(accounts.vaultKTokenAta),
+      getAccountMeta(accounts.kTokenMint),
+      getAccountMeta(accounts.kaminoReserve),
+      getAccountMeta(accounts.kaminoLendingMarket),
+      getAccountMeta(accounts.kaminoLendingMarketAuthority),
+      getAccountMeta(accounts.kaminoLiquiditySupply),
+      getAccountMeta(accounts.kaminoLendingProgram),
+      getAccountMeta(accounts.instructionSysvar),
       getAccountMeta(accounts.tokenProgram),
       getAccountMeta(accounts.associatedTokenProgram),
       getAccountMeta(accounts.systemProgram),
@@ -413,6 +592,14 @@ export function getCloseVaultInstruction<
     TAccountMint,
     TAccountOwnerAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -425,29 +612,22 @@ export type ParsedCloseVaultInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /** The vault owner — signs the transaction and reclaims all tokens + rent. */
     owner: TAccountMetas[0];
     vault: TAccountMetas[1];
-    /**
-     * The SPL token mint that was staked.
-     * Validated implicitly via `has_one = mint` on the vault above.
-     */
     mint: TAccountMetas[2];
-    /**
-     * Owner's Associated Token Account — receives the staked tokens back.
-     * `init_if_needed` handles the rare edge-case where the owner closed
-     * their ATA after the vault was initialized.
-     */
     ownerAta: TAccountMetas[3];
-    /**
-     * Vault's Associated Token Account — holds the staked tokens.
-     * Anchor validates the address matches (vault PDA, mint).
-     * The vault PDA is the sole authority; only PDA-signed CPIs can move tokens.
-     */
     vaultAta: TAccountMetas[4];
-    tokenProgram: TAccountMetas[5];
-    associatedTokenProgram: TAccountMetas[6];
-    systemProgram: TAccountMetas[7];
+    vaultKTokenAta: TAccountMetas[5];
+    kTokenMint: TAccountMetas[6];
+    kaminoReserve: TAccountMetas[7];
+    kaminoLendingMarket: TAccountMetas[8];
+    kaminoLendingMarketAuthority: TAccountMetas[9];
+    kaminoLiquiditySupply: TAccountMetas[10];
+    kaminoLendingProgram: TAccountMetas[11];
+    instructionSysvar: TAccountMetas[12];
+    tokenProgram: TAccountMetas[13];
+    associatedTokenProgram: TAccountMetas[14];
+    systemProgram: TAccountMetas[15];
   };
   data: CloseVaultInstructionData;
 };
@@ -460,7 +640,7 @@ export function parseCloseVaultInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>
 ): ParsedCloseVaultInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 8) {
+  if (instruction.accounts.length < 16) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -478,6 +658,14 @@ export function parseCloseVaultInstruction<
       mint: getNextAccount(),
       ownerAta: getNextAccount(),
       vaultAta: getNextAccount(),
+      vaultKTokenAta: getNextAccount(),
+      kTokenMint: getNextAccount(),
+      kaminoReserve: getNextAccount(),
+      kaminoLendingMarket: getNextAccount(),
+      kaminoLendingMarketAuthority: getNextAccount(),
+      kaminoLiquiditySupply: getNextAccount(),
+      kaminoLendingProgram: getNextAccount(),
+      instructionSysvar: getNextAccount(),
       tokenProgram: getNextAccount(),
       associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),

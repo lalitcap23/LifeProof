@@ -44,6 +44,8 @@ export const PROOF_POL_ERROR__NOMINEE_ATA_MINT_MISMATCH = 0x177c; // 6012
 export const PROOF_POL_ERROR__NOMINEE_ATA_OWNER_MISMATCH = 0x177d; // 6013
 /** Overflow: Arithmetic overflow when computing deadline timestamp. */
 export const PROOF_POL_ERROR__OVERFLOW = 0x177e; // 6014
+/** InvalidKaminoProgram: Invalid Kamino lending program — address mismatch. */
+export const PROOF_POL_ERROR__INVALID_KAMINO_PROGRAM = 0x177f; // 6015
 
 export type ProofPolError =
   | typeof PROOF_POL_ERROR__CLAIM_GRACE_PERIOD_NOT_PASSED
@@ -51,6 +53,7 @@ export type ProofPolError =
   | typeof PROOF_POL_ERROR__DEADLINE_NOT_PASSED
   | typeof PROOF_POL_ERROR__INTERVAL_TOO_LONG
   | typeof PROOF_POL_ERROR__INTERVAL_TOO_SHORT
+  | typeof PROOF_POL_ERROR__INVALID_KAMINO_PROGRAM
   | typeof PROOF_POL_ERROR__NOMINEE_ATA_MINT_MISMATCH
   | typeof PROOF_POL_ERROR__NOMINEE_ATA_OWNER_MISMATCH
   | typeof PROOF_POL_ERROR__NOT_NOMINEE
@@ -70,6 +73,7 @@ if (process.env.NODE_ENV !== 'production') {
     [PROOF_POL_ERROR__DEADLINE_NOT_PASSED]: `The deadline has not passed; the owner is still in time.`,
     [PROOF_POL_ERROR__INTERVAL_TOO_LONG]: `Check-in interval is too long (maximum: 30 days).`,
     [PROOF_POL_ERROR__INTERVAL_TOO_SHORT]: `Check-in interval is too short (minimum: 1 hour).`,
+    [PROOF_POL_ERROR__INVALID_KAMINO_PROGRAM]: `Invalid Kamino lending program — address mismatch.`,
     [PROOF_POL_ERROR__NOMINEE_ATA_MINT_MISMATCH]: `Nominee token account mint does not match the vault mint.`,
     [PROOF_POL_ERROR__NOMINEE_ATA_OWNER_MISMATCH]: `Nominee token account is not owned by the nominee wallet.`,
     [PROOF_POL_ERROR__NOT_NOMINEE]: `Only the nominated accountability wallet may perform this action.`,

@@ -7,6 +7,8 @@ import {
   PublicKey,
   Transaction,
   TransactionInstruction,
+  SystemProgram,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
 } from "@solana/web3.js";
 import { type WalletContextState } from "@solana/wallet-adapter-react";
 import { address, type Address, type TransactionSigner } from "@solana/kit";
@@ -30,9 +32,26 @@ import {
 } from "./index";
 import { getCommitmentVaultDecoder } from "./accounts/commitmentVault";
 import { getOwnerProfileDecoder } from "./accounts/ownerProfile";
+import { getErrorMessage, getNestedErrorValue } from "../error";
+import {
+  CLUSTER,
+  KAMINO_LENDING_MARKET,
+  KAMINO_LENDING_MARKET_AUTHORITY,
+  KAMINO_LENDING_PROGRAM_ID,
+  KAMINO_SOL_COLLATERAL_MINT,
+  KAMINO_SOL_LIQUIDITY_SUPPLY,
+  KAMINO_SOL_RESERVE,
+  KAMINO_USDC_COLLATERAL_MINT,
+  KAMINO_USDC_LIQUIDITY_SUPPLY,
+  KAMINO_USDC_RESERVE,
+  MINT_WSOL,
+  USDC_MINT,
+} from "../constants";
 
 export { PROOF_POL_PROGRAM_ADDRESS };
 export type { CommitmentVault };
+
+type CodamaInstruction = Parameters<typeof codamaToWeb3Instruction>[0];
 
 function codamaToWeb3Instruction(codamaInstruction: {
   programAddress: Address;
@@ -54,9 +73,16 @@ function createMockSigner(publicKey: PublicKey): TransactionSigner {
   return { address: publicKey.toBase58() as Address } as TransactionSigner;
 }
 
+// CommitmentVault minimum byte size:
+// 8 (discriminator) + 32+8+32+32+8+8+8+8+1+1+1+32+8 (struct fields) = 187
+const COMMITMENT_VAULT_MIN_BYTES = 187;
+
 // Direct byte decoder — avoids the @solana/kit RPC adapter which expects
 // base64-encoded data in [string, 'base64'] format, not raw Uint8Array.
 function decodeVaultBytes(data: Buffer | Uint8Array): CommitmentVault | null {
+  // Silently skip accounts that are too small — they are stale vaults from
+  // a previous program deployment with fewer struct fields.
+  if (data.length < COMMITMENT_VAULT_MIN_BYTES) return null;
   try {
     return getCommitmentVaultDecoder().decode(new Uint8Array(data));
   } catch (err) {
@@ -65,7 +91,9 @@ function decodeVaultBytes(data: Buffer | Uint8Array): CommitmentVault | null {
   }
 }
 
-function decodeOwnerProfileBytes(data: Buffer | Uint8Array): OwnerProfile | null {
+function decodeOwnerProfileBytes(
+  data: Buffer | Uint8Array
+): OwnerProfile | null {
   try {
     return getOwnerProfileDecoder().decode(new Uint8Array(data));
   } catch (err) {
@@ -120,6 +148,7 @@ export interface VaultAccountData {
 }
 
 const FALLBACK_VAULT_SCAN_COUNT = 16;
+const SYSTEM_PROGRAM_ADDRESS = SystemProgram.programId.toBase58();
 
 export class ProofPolClient {
   private connection: Connection;
@@ -168,25 +197,105 @@ export class ProofPolClient {
             : `Simulation failed: ${JSON.stringify(simResult.value.err)}`
         );
       }
-    } catch (simErr: any) {
-      if (simErr.message?.startsWith("Simulation failed")) throw simErr;
-      console.warn("Pre-simulation non-critical error:", simErr.message);
+    } catch (simErr: unknown) {
+      const simMessage = getErrorMessage(simErr);
+      if (simMessage.startsWith("Simulation failed")) throw simErr;
+      console.warn("Pre-simulation non-critical error:", simMessage);
     }
 
-    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: this.publicKey });
+    const tx = new Transaction({
+      recentBlockhash: blockhash,
+      feePayer: this.publicKey,
+    });
     ixList.forEach((ix) => tx.add(ix));
 
     try {
       const signature = await this.wallet.sendTransaction(tx, this.connection);
-      await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight });
+      await this.connection.confirmTransaction({
+        signature,
+        blockhash,
+        lastValidBlockHeight,
+      });
       return signature;
-    } catch (err: any) {
-      const cause = err?.cause ?? err?.error ?? err;
-      const msg =
-        cause?.message ?? (typeof cause === "string" ? cause : JSON.stringify(cause));
+    } catch (err: unknown) {
+      const cause =
+        getNestedErrorValue(err, "cause") ??
+        getNestedErrorValue(err, "error") ??
+        err;
+      const msg = getErrorMessage(cause);
       console.error("Wallet send error:", msg, cause);
-      throw new Error(msg || err?.message || "Transaction failed");
+      throw new Error(msg || getErrorMessage(err) || "Transaction failed");
     }
+  }
+
+  private getDevnetPlaceholderMint(mintPk: PublicKey): PublicKey {
+    const usdcMintPk = new PublicKey(USDC_MINT);
+    return mintPk.equals(usdcMintPk) ? new PublicKey(MINT_WSOL) : usdcMintPk;
+  }
+
+  private async getKaminoAccounts(
+    mintPk: PublicKey,
+    vaultPda: PublicKey,
+    fallbackAta: PublicKey,
+    options?: {
+      kTokenMintOverride?: PublicKey;
+    }
+  ) {
+    let kTokenMint: PublicKey;
+    let kaminoReserve: PublicKey;
+    let kaminoLendingMarket: PublicKey;
+    let kaminoLendingMarketAuthority: PublicKey;
+    let kaminoLiquiditySupply: PublicKey;
+
+    // Use Kamino CPI only on non-devnet and for supported tokens
+    if (
+      CLUSTER !== "devnet" &&
+      (mintPk.toBase58() === USDC_MINT || mintPk.toBase58() === MINT_WSOL)
+    ) {
+      if (mintPk.toBase58() === USDC_MINT) {
+        kTokenMint = new PublicKey(KAMINO_USDC_COLLATERAL_MINT);
+        kaminoReserve = new PublicKey(KAMINO_USDC_RESERVE);
+        kaminoLiquiditySupply = new PublicKey(KAMINO_USDC_LIQUIDITY_SUPPLY);
+      } else {
+        kTokenMint = new PublicKey(KAMINO_SOL_COLLATERAL_MINT);
+        kaminoReserve = new PublicKey(KAMINO_SOL_RESERVE);
+        kaminoLiquiditySupply = new PublicKey(KAMINO_SOL_LIQUIDITY_SUPPLY);
+      }
+      kaminoLendingMarket = new PublicKey(KAMINO_LENDING_MARKET);
+      kaminoLendingMarketAuthority = new PublicKey(
+        KAMINO_LENDING_MARKET_AUTHORITY
+      );
+    } else {
+      // Devnet keeps funds in vault_ata, but Anchor still validates the
+      // placeholder Kamino accounts. Use a distinct mint so vault_ata and
+      // vault_k_token_ata do not collapse to the same ATA.
+      kTokenMint =
+        options?.kTokenMintOverride ?? this.getDevnetPlaceholderMint(mintPk);
+      kaminoReserve = SystemProgram.programId;
+      kaminoLendingMarket = SystemProgram.programId;
+      kaminoLendingMarketAuthority = SystemProgram.programId;
+      kaminoLiquiditySupply = fallbackAta;
+    }
+
+    const vaultKTokenAta = await getAssociatedTokenAddress(
+      kTokenMint,
+      vaultPda,
+      true, // allowOwnerOffCurve = true (vaultPda is a PDA)
+      TOKEN_PROGRAM_ID
+    );
+
+    return {
+      kTokenMint: address(kTokenMint.toBase58()),
+      kaminoReserve: address(kaminoReserve.toBase58()),
+      kaminoLendingMarket: address(kaminoLendingMarket.toBase58()),
+      kaminoLendingMarketAuthority: address(
+        kaminoLendingMarketAuthority.toBase58()
+      ),
+      kaminoLiquiditySupply: address(kaminoLiquiditySupply.toBase58()),
+      kaminoLendingProgram: address(KAMINO_LENDING_PROGRAM_ID),
+      instructionSysvar: address(SYSVAR_INSTRUCTIONS_PUBKEY.toBase58()),
+      vaultKTokenAta: address(vaultKTokenAta.toBase58()),
+    };
   }
 
   getOwnerProfilePda(owner?: PublicKey): PublicKey {
@@ -200,7 +309,8 @@ export class ProofPolClient {
 
   getVaultPda(vaultId: bigint | number, owner?: PublicKey): PublicKey {
     const ownerKey = owner || this.publicKey;
-    const normalizedVaultId = typeof vaultId === "number" ? BigInt(vaultId) : vaultId;
+    const normalizedVaultId =
+      typeof vaultId === "number" ? BigInt(vaultId) : vaultId;
     const [vaultPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("vault"), ownerKey.toBuffer(), u64ToSeed(normalizedVaultId)],
       new PublicKey(PROOF_POL_PROGRAM_ADDRESS)
@@ -218,13 +328,18 @@ export class ProofPolClient {
       return null;
     }
 
-    const discriminator = accountInfo.data.subarray(0, OWNER_PROFILE_DISCRIMINATOR.length);
+    const discriminator = accountInfo.data.subarray(
+      0,
+      OWNER_PROFILE_DISCRIMINATOR.length
+    );
     const matchesDiscriminator = OWNER_PROFILE_DISCRIMINATOR.every(
       (byte, index) => discriminator[index] === byte
     );
 
     if (!matchesDiscriminator) {
-      console.warn("OwnerProfile discriminator mismatch — stale program deployment?");
+      console.warn(
+        "OwnerProfile discriminator mismatch — stale program deployment?"
+      );
       return null;
     }
 
@@ -241,7 +356,9 @@ export class ProofPolClient {
 
     for (let attempts = 0; attempts < 256; attempts += 1) {
       const vaultPda = this.getVaultPda(vaultId, owner);
-      const existingVaultAccount = await this.connection.getAccountInfo(vaultPda);
+      const existingVaultAccount = await this.connection.getAccountInfo(
+        vaultPda
+      );
 
       if (!existingVaultAccount) {
         return vaultId;
@@ -253,10 +370,14 @@ export class ProofPolClient {
     throw new Error("Could not find a free vault id for this wallet.");
   }
 
-  async fetchVaultByAddress(vaultAddress: PublicKey | string): Promise<CommitmentVault | null> {
+  async fetchVaultByAddress(
+    vaultAddress: PublicKey | string
+  ): Promise<CommitmentVault | null> {
     const vaultAddressString =
       typeof vaultAddress === "string" ? vaultAddress : vaultAddress.toBase58();
-    const accountInfo = await this.connection.getAccountInfo(new PublicKey(vaultAddressString));
+    const accountInfo = await this.connection.getAccountInfo(
+      new PublicKey(vaultAddressString)
+    );
 
     if (!accountInfo) return null;
 
@@ -264,7 +385,10 @@ export class ProofPolClient {
       return null;
     }
 
-    const discriminator = accountInfo.data.subarray(0, COMMITMENT_VAULT_DISCRIMINATOR.length);
+    const discriminator = accountInfo.data.subarray(
+      0,
+      COMMITMENT_VAULT_DISCRIMINATOR.length
+    );
     const matchesDiscriminator = COMMITMENT_VAULT_DISCRIMINATOR.every(
       (byte, index) => discriminator[index] === byte
     );
@@ -301,12 +425,15 @@ export class ProofPolClient {
 
     const ownerProfile = await this.fetchOwnerProfile(ownerKey);
     const scanCount = Number(
-      ownerProfile?.nextVaultId && ownerProfile.nextVaultId > BigInt(FALLBACK_VAULT_SCAN_COUNT)
+      ownerProfile?.nextVaultId &&
+        ownerProfile.nextVaultId > BigInt(FALLBACK_VAULT_SCAN_COUNT)
         ? ownerProfile.nextVaultId
         : BigInt(FALLBACK_VAULT_SCAN_COUNT)
     );
 
-    const candidateAddresses = new Set(rawAccounts.map((account) => account.pubkey.toBase58()));
+    const candidateAddresses = new Set(
+      rawAccounts.map((account) => account.pubkey.toBase58())
+    );
 
     for (let index = 0; index < scanCount; index += 1) {
       candidateAddresses.add(this.getVaultPda(index, ownerKey).toBase58());
@@ -345,13 +472,20 @@ export class ProofPolClient {
       TOKEN_PROGRAM_ID
     );
 
-    const createPlatformAtaIx = createAssociatedTokenAccountIdempotentInstruction(
-      this.publicKey,
-      platformUsdcAta,
-      platformWalletPubkey,
-      usdcMintPk,
-      TOKEN_PROGRAM_ID
-    );
+    const createPlatformAtaIx =
+      createAssociatedTokenAccountIdempotentInstruction(
+        this.publicKey,
+        platformUsdcAta,
+        platformWalletPubkey,
+        usdcMintPk,
+        TOKEN_PROGRAM_ID
+      );
+
+    const mintPk = new PublicKey(params.mint);
+    const ownerAtaPk = await getAssociatedTokenAddress(mintPk, this.publicKey);
+    
+    // Get Kamino accounts (dummies on devnet, real on mainnet)
+    const kaminoAccounts = await this.getKaminoAccounts(mintPk, vaultPda, ownerAtaPk);
 
     const instruction = await getInitializeVaultInstructionAsync({
       owner,
@@ -363,9 +497,12 @@ export class ProofPolClient {
       vaultId: nextVaultId,
       stakeAmount: params.stakeAmount,
       checkinInterval: params.checkinIntervalSeconds,
+      ...kaminoAccounts,
     });
 
-    const vaultIx = codamaToWeb3Instruction(instruction as any);
+    const vaultIx = codamaToWeb3Instruction(
+      instruction as unknown as CodamaInstruction
+    );
     return this.sendTransaction([createPlatformAtaIx, vaultIx]);
   }
 
@@ -375,28 +512,80 @@ export class ProofPolClient {
       owner,
       vault: address(vaultAddress),
     });
-    return this.sendTransaction(codamaToWeb3Instruction(instruction as any));
+    return this.sendTransaction(
+      codamaToWeb3Instruction(instruction as unknown as CodamaInstruction)
+    );
   }
 
   async closeVault(params: CloseVaultParams): Promise<string> {
     const owner = createMockSigner(this.publicKey);
+    const vaultPda = new PublicKey(params.vaultAddress);
+    const mintPk = new PublicKey(params.mint);
+
+    // On close, vaultATA always exists; we use that as fallback
+    const vaultAtaPk = await getAssociatedTokenAddress(
+      mintPk,
+      vaultPda,
+      true,
+      TOKEN_PROGRAM_ID
+    );
+    const vaultData = await this.fetchVaultByAddress(vaultPda);
+    const storedKTokenMint =
+      vaultData && vaultData.kTokenMint !== SYSTEM_PROGRAM_ADDRESS
+        ? new PublicKey(vaultData.kTokenMint)
+        : undefined;
+    const kaminoAccounts = await this.getKaminoAccounts(
+      mintPk,
+      vaultPda,
+      vaultAtaPk,
+      { kTokenMintOverride: storedKTokenMint }
+    );
+
     const instruction = await getCloseVaultInstructionAsync({
       owner,
       vault: address(params.vaultAddress),
       mint: address(params.mint),
+      ...kaminoAccounts,
     });
-    return this.sendTransaction(codamaToWeb3Instruction(instruction as any));
+    return this.sendTransaction(
+      codamaToWeb3Instruction(instruction as unknown as CodamaInstruction)
+    );
   }
 
   async claimVault(params: ClaimVaultParams): Promise<string> {
     const executor = createMockSigner(this.publicKey);
+    const vaultPda = new PublicKey(params.vaultAddress);
+    const mintPk = new PublicKey(params.mintAddress);
+
+    // On claim, vaultATA always exists; we use that as fallback
+    const vaultAtaPk = await getAssociatedTokenAddress(
+      mintPk,
+      vaultPda,
+      true,
+      TOKEN_PROGRAM_ID
+    );
+    const vaultData = await this.fetchVaultByAddress(vaultPda);
+    const storedKTokenMint =
+      vaultData && vaultData.kTokenMint !== SYSTEM_PROGRAM_ADDRESS
+        ? new PublicKey(vaultData.kTokenMint)
+        : undefined;
+    const kaminoAccounts = await this.getKaminoAccounts(
+      mintPk,
+      vaultPda,
+      vaultAtaPk,
+      { kTokenMintOverride: storedKTokenMint }
+    );
+
     const instruction = await getClaimVaultInstructionAsync({
       executor,
       owner: address(params.ownerAddress),
       nominee: address(params.nomineeAddress),
       vault: address(params.vaultAddress),
       mint: address(params.mintAddress),
+      ...kaminoAccounts,
     });
-    return this.sendTransaction(codamaToWeb3Instruction(instruction as any));
+    return this.sendTransaction(
+      codamaToWeb3Instruction(instruction as unknown as CodamaInstruction)
+    );
   }
 }

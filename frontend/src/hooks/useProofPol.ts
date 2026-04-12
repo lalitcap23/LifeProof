@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
+import { getErrorMessage } from "@/lib/error";
 import {
   ProofPolClient,
   type CommitmentVault,
@@ -64,7 +65,9 @@ export function useProofPol() {
 
     try {
       const accounts = await client.fetchVaults();
-      setVaults(accounts.map((vault) => toVaultData(vault.data, vault.address)));
+      setVaults(
+        accounts.map((vault) => toVaultData(vault.data, vault.address))
+      );
     } catch (err) {
       console.error("Error fetching vaults:", err);
       setError("Failed to fetch vault data");
@@ -93,8 +96,8 @@ export function useProofPol() {
         const signature = await client.initializeVault(params);
         await fetchVaults();
         return signature;
-      } catch (err: any) {
-        const message = err?.message || "Failed to initialize vault";
+      } catch (err: unknown) {
+        const message = getErrorMessage(err) || "Failed to initialize vault";
         setError(message);
         throw err;
       } finally {
@@ -115,8 +118,9 @@ export function useProofPol() {
         const signature = await client.proofOfLife(vaultAddress);
         await fetchVaults();
         return signature;
-      } catch (err: any) {
-        const message = err?.message || "Failed to submit proof of life";
+      } catch (err: unknown) {
+        const message =
+          getErrorMessage(err) || "Failed to submit proof of life";
         setError(message);
         throw err;
       } finally {
@@ -137,8 +141,8 @@ export function useProofPol() {
         const signature = await client.closeVault(params);
         await fetchVaults();
         return signature;
-      } catch (err: any) {
-        const message = err?.message || "Failed to close vault";
+      } catch (err: unknown) {
+        const message = getErrorMessage(err) || "Failed to close vault";
         setError(message);
         throw err;
       } finally {
@@ -159,8 +163,8 @@ export function useProofPol() {
         const signature = await client.claimVault(params);
         await fetchVaults();
         return signature;
-      } catch (err: any) {
-        const message = err?.message || "Failed to claim vault";
+      } catch (err: unknown) {
+        const message = getErrorMessage(err) || "Failed to claim vault";
         setError(message);
         throw err;
       } finally {
@@ -179,7 +183,10 @@ export function useProofPol() {
   );
 
   const fetchVaultFor = useCallback(
-    async (owner: PublicKey, vaultId: bigint | number): Promise<VaultData | null> => {
+    async (
+      owner: PublicKey,
+      vaultId: bigint | number
+    ): Promise<VaultData | null> => {
       if (!client) return null;
 
       try {

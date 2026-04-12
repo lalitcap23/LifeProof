@@ -15,7 +15,10 @@ const u64ToSeed = (value: bigint | number): Uint8Array => {
   return seed;
 };
 
-const getVaultPda = (owner: PublicKey, vaultId: bigint | number): [PublicKey, number] => {
+const getVaultPda = (
+  owner: PublicKey,
+  vaultId: bigint | number
+): [PublicKey, number] => {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("vault"), owner.toBuffer(), u64ToSeed(vaultId)],
     new PublicKey(PROGRAM_ID)
@@ -28,7 +31,10 @@ export async function GET(request: NextRequest) {
   const vaultId = BigInt(searchParams.get("vaultId") ?? "0");
 
   if (!owner) {
-    return NextResponse.json({ error: "Owner address required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Owner address required" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -44,7 +50,10 @@ export async function GET(request: NextRequest) {
 
     const data = accountInfo.data;
     if (data.length < 8 + 32 + 8 + 32 + 32 + 8 + 8 + 8 + 8 + 1) {
-      return NextResponse.json({ error: "Invalid vault data" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Invalid vault data" },
+        { status: 500 }
+      );
     }
 
     const vaultOwner = new PublicKey(data.slice(8, 40)).toBase58();

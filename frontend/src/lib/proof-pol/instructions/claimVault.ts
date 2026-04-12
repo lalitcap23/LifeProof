@@ -56,6 +56,16 @@ export type ClaimVaultInstruction<
   TAccountMint extends string | AccountMeta<string> = string,
   TAccountNomineeAta extends string | AccountMeta<string> = string,
   TAccountVaultAta extends string | AccountMeta<string> = string,
+  TAccountVaultKTokenAta extends string | AccountMeta<string> = string,
+  TAccountKTokenMint extends string | AccountMeta<string> = string,
+  TAccountKaminoReserve extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingMarket extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingMarketAuthority extends string | AccountMeta<string> =
+    string,
+  TAccountKaminoLiquiditySupply extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingProgram extends string | AccountMeta<string> = string,
+  TAccountInstructionSysvar extends string | AccountMeta<string> =
+    'Sysvar1nstructions1111111111111111111111111',
   TAccountTokenProgram extends string | AccountMeta<string> =
     'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
@@ -89,6 +99,30 @@ export type ClaimVaultInstruction<
       TAccountVaultAta extends string
         ? WritableAccount<TAccountVaultAta>
         : TAccountVaultAta,
+      TAccountVaultKTokenAta extends string
+        ? WritableAccount<TAccountVaultKTokenAta>
+        : TAccountVaultKTokenAta,
+      TAccountKTokenMint extends string
+        ? ReadonlyAccount<TAccountKTokenMint>
+        : TAccountKTokenMint,
+      TAccountKaminoReserve extends string
+        ? WritableAccount<TAccountKaminoReserve>
+        : TAccountKaminoReserve,
+      TAccountKaminoLendingMarket extends string
+        ? ReadonlyAccount<TAccountKaminoLendingMarket>
+        : TAccountKaminoLendingMarket,
+      TAccountKaminoLendingMarketAuthority extends string
+        ? ReadonlyAccount<TAccountKaminoLendingMarketAuthority>
+        : TAccountKaminoLendingMarketAuthority,
+      TAccountKaminoLiquiditySupply extends string
+        ? WritableAccount<TAccountKaminoLiquiditySupply>
+        : TAccountKaminoLiquiditySupply,
+      TAccountKaminoLendingProgram extends string
+        ? ReadonlyAccount<TAccountKaminoLendingProgram>
+        : TAccountKaminoLendingProgram,
+      TAccountInstructionSysvar extends string
+        ? ReadonlyAccount<TAccountInstructionSysvar>
+        : TAccountInstructionSysvar,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
         : TAccountTokenProgram,
@@ -137,58 +171,34 @@ export type ClaimVaultAsyncInput<
   TAccountMint extends string = string,
   TAccountNomineeAta extends string = string,
   TAccountVaultAta extends string = string,
+  TAccountVaultKTokenAta extends string = string,
+  TAccountKTokenMint extends string = string,
+  TAccountKaminoReserve extends string = string,
+  TAccountKaminoLendingMarket extends string = string,
+  TAccountKaminoLendingMarketAuthority extends string = string,
+  TAccountKaminoLiquiditySupply extends string = string,
+  TAccountKaminoLendingProgram extends string = string,
+  TAccountInstructionSysvar extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  /** permissionless keeper. */
+  /** Permissionless keeper — pays for any ATA creation. */
   executor: TransactionSigner<TAccountExecutor>;
   nominee: Address<TAccountNominee>;
-  /**
-   * The original vault owner — used only for PDA seed derivation.
-   * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
-   *
-   * as `owner` and, if seeds still resolve, bypass the stored-owner check.
-   */
   owner: Address<TAccountOwner>;
-  /**
-   * The vault PDA state account.
-   * `seeds + bump`     — derives and verifies the PDA address.
-   * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-   * `has_one = nominee`— enforces payout destination from vault state.
-   * `has_one = mint`   — ensures the correct token mint account is passed.
-   * `close   = nominee`— Anchor transfers vault-state rent to nominee
-   * automatically once the handler returns successfully.
-   */
   vault: Address<TAccountVault>;
-  /**
-   * The SPL token mint that was staked.
-   * Validated implicitly via `has_one = mint` on the vault above.
-   */
   mint: Address<TAccountMint>;
-  /**
-   * Nominee's Associated Token Account — receives the staked tokens.
-   *
-   * LOOPHOLE-3 FIX: `init_if_needed` with explicit `associated_token::mint`
-   * and `associated_token::authority` constraints forces Anchor to validate
-   * the existing account's mint and owner fields even when the account
-   * already exists (i.e. it does NOT silently skip validation).
-   * A second layer of defence is applied in the handler itself via explicit
-   * runtime `require!` checks on nominee_ata.mint and nominee_ata.owner.
-   */
   nomineeAta?: Address<TAccountNomineeAta>;
-  /**
-   * Vault's Associated Token Account — holds the staked tokens.
-   *
-   * LOOPHOLE-1 FIX: `associated_token::authority = vault` means the vault
-   * PDA is the SOLE authority over this ATA.  The nominee (or anyone else)
-   * cannot call `spl_token::transfer` or `spl_token::close_account` directly
-   * on this account — they would need the vault PDA to sign, which is only
-   * possible through this program.  Setting authority = nominee here would
-   * allow the nominee to bypass the deadline check entirely by calling the
-   * SPL Token program directly.
-   */
   vaultAta?: Address<TAccountVaultAta>;
+  vaultKTokenAta?: Address<TAccountVaultKTokenAta>;
+  kTokenMint: Address<TAccountKTokenMint>;
+  kaminoReserve: Address<TAccountKaminoReserve>;
+  kaminoLendingMarket: Address<TAccountKaminoLendingMarket>;
+  kaminoLendingMarketAuthority: Address<TAccountKaminoLendingMarketAuthority>;
+  kaminoLiquiditySupply: Address<TAccountKaminoLiquiditySupply>;
+  kaminoLendingProgram: Address<TAccountKaminoLendingProgram>;
+  instructionSysvar?: Address<TAccountInstructionSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -202,6 +212,14 @@ export async function getClaimVaultInstructionAsync<
   TAccountMint extends string,
   TAccountNomineeAta extends string,
   TAccountVaultAta extends string,
+  TAccountVaultKTokenAta extends string,
+  TAccountKTokenMint extends string,
+  TAccountKaminoReserve extends string,
+  TAccountKaminoLendingMarket extends string,
+  TAccountKaminoLendingMarketAuthority extends string,
+  TAccountKaminoLiquiditySupply extends string,
+  TAccountKaminoLendingProgram extends string,
+  TAccountInstructionSysvar extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
@@ -215,6 +233,14 @@ export async function getClaimVaultInstructionAsync<
     TAccountMint,
     TAccountNomineeAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -230,6 +256,14 @@ export async function getClaimVaultInstructionAsync<
     TAccountMint,
     TAccountNomineeAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -247,6 +281,29 @@ export async function getClaimVaultInstructionAsync<
     mint: { value: input.mint ?? null, isWritable: false },
     nomineeAta: { value: input.nomineeAta ?? null, isWritable: true },
     vaultAta: { value: input.vaultAta ?? null, isWritable: true },
+    vaultKTokenAta: { value: input.vaultKTokenAta ?? null, isWritable: true },
+    kTokenMint: { value: input.kTokenMint ?? null, isWritable: false },
+    kaminoReserve: { value: input.kaminoReserve ?? null, isWritable: true },
+    kaminoLendingMarket: {
+      value: input.kaminoLendingMarket ?? null,
+      isWritable: false,
+    },
+    kaminoLendingMarketAuthority: {
+      value: input.kaminoLendingMarketAuthority ?? null,
+      isWritable: false,
+    },
+    kaminoLiquiditySupply: {
+      value: input.kaminoLiquiditySupply ?? null,
+      isWritable: true,
+    },
+    kaminoLendingProgram: {
+      value: input.kaminoLendingProgram ?? null,
+      isWritable: false,
+    },
+    instructionSysvar: {
+      value: input.instructionSysvar ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     associatedTokenProgram: {
       value: input.associatedTokenProgram ?? null,
@@ -294,6 +351,27 @@ export async function getClaimVaultInstructionAsync<
       ],
     });
   }
+  if (!accounts.vaultKTokenAta.value) {
+    accounts.vaultKTokenAta.value = await getProgramDerivedAddress({
+      programAddress:
+        'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL' as Address<'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'>,
+      seeds: [
+        getAddressEncoder().encode(expectAddress(accounts.vault.value)),
+        getBytesEncoder().encode(
+          new Uint8Array([
+            6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235,
+            121, 172, 28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133,
+            126, 255, 0, 169,
+          ])
+        ),
+        getAddressEncoder().encode(expectAddress(accounts.kTokenMint.value)),
+      ],
+    });
+  }
+  if (!accounts.instructionSysvar.value) {
+    accounts.instructionSysvar.value =
+      'Sysvar1nstructions1111111111111111111111111' as Address<'Sysvar1nstructions1111111111111111111111111'>;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' as Address<'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'>;
@@ -317,6 +395,14 @@ export async function getClaimVaultInstructionAsync<
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.nomineeAta),
       getAccountMeta(accounts.vaultAta),
+      getAccountMeta(accounts.vaultKTokenAta),
+      getAccountMeta(accounts.kTokenMint),
+      getAccountMeta(accounts.kaminoReserve),
+      getAccountMeta(accounts.kaminoLendingMarket),
+      getAccountMeta(accounts.kaminoLendingMarketAuthority),
+      getAccountMeta(accounts.kaminoLiquiditySupply),
+      getAccountMeta(accounts.kaminoLendingProgram),
+      getAccountMeta(accounts.instructionSysvar),
       getAccountMeta(accounts.tokenProgram),
       getAccountMeta(accounts.associatedTokenProgram),
       getAccountMeta(accounts.systemProgram),
@@ -332,6 +418,14 @@ export async function getClaimVaultInstructionAsync<
     TAccountMint,
     TAccountNomineeAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -346,58 +440,34 @@ export type ClaimVaultInput<
   TAccountMint extends string = string,
   TAccountNomineeAta extends string = string,
   TAccountVaultAta extends string = string,
+  TAccountVaultKTokenAta extends string = string,
+  TAccountKTokenMint extends string = string,
+  TAccountKaminoReserve extends string = string,
+  TAccountKaminoLendingMarket extends string = string,
+  TAccountKaminoLendingMarketAuthority extends string = string,
+  TAccountKaminoLiquiditySupply extends string = string,
+  TAccountKaminoLendingProgram extends string = string,
+  TAccountInstructionSysvar extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  /** permissionless keeper. */
+  /** Permissionless keeper — pays for any ATA creation. */
   executor: TransactionSigner<TAccountExecutor>;
   nominee: Address<TAccountNominee>;
-  /**
-   * The original vault owner — used only for PDA seed derivation.
-   * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
-   *
-   * as `owner` and, if seeds still resolve, bypass the stored-owner check.
-   */
   owner: Address<TAccountOwner>;
-  /**
-   * The vault PDA state account.
-   * `seeds + bump`     — derives and verifies the PDA address.
-   * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-   * `has_one = nominee`— enforces payout destination from vault state.
-   * `has_one = mint`   — ensures the correct token mint account is passed.
-   * `close   = nominee`— Anchor transfers vault-state rent to nominee
-   * automatically once the handler returns successfully.
-   */
   vault: Address<TAccountVault>;
-  /**
-   * The SPL token mint that was staked.
-   * Validated implicitly via `has_one = mint` on the vault above.
-   */
   mint: Address<TAccountMint>;
-  /**
-   * Nominee's Associated Token Account — receives the staked tokens.
-   *
-   * LOOPHOLE-3 FIX: `init_if_needed` with explicit `associated_token::mint`
-   * and `associated_token::authority` constraints forces Anchor to validate
-   * the existing account's mint and owner fields even when the account
-   * already exists (i.e. it does NOT silently skip validation).
-   * A second layer of defence is applied in the handler itself via explicit
-   * runtime `require!` checks on nominee_ata.mint and nominee_ata.owner.
-   */
   nomineeAta: Address<TAccountNomineeAta>;
-  /**
-   * Vault's Associated Token Account — holds the staked tokens.
-   *
-   * LOOPHOLE-1 FIX: `associated_token::authority = vault` means the vault
-   * PDA is the SOLE authority over this ATA.  The nominee (or anyone else)
-   * cannot call `spl_token::transfer` or `spl_token::close_account` directly
-   * on this account — they would need the vault PDA to sign, which is only
-   * possible through this program.  Setting authority = nominee here would
-   * allow the nominee to bypass the deadline check entirely by calling the
-   * SPL Token program directly.
-   */
   vaultAta: Address<TAccountVaultAta>;
+  vaultKTokenAta: Address<TAccountVaultKTokenAta>;
+  kTokenMint: Address<TAccountKTokenMint>;
+  kaminoReserve: Address<TAccountKaminoReserve>;
+  kaminoLendingMarket: Address<TAccountKaminoLendingMarket>;
+  kaminoLendingMarketAuthority: Address<TAccountKaminoLendingMarketAuthority>;
+  kaminoLiquiditySupply: Address<TAccountKaminoLiquiditySupply>;
+  kaminoLendingProgram: Address<TAccountKaminoLendingProgram>;
+  instructionSysvar?: Address<TAccountInstructionSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -411,6 +481,14 @@ export function getClaimVaultInstruction<
   TAccountMint extends string,
   TAccountNomineeAta extends string,
   TAccountVaultAta extends string,
+  TAccountVaultKTokenAta extends string,
+  TAccountKTokenMint extends string,
+  TAccountKaminoReserve extends string,
+  TAccountKaminoLendingMarket extends string,
+  TAccountKaminoLendingMarketAuthority extends string,
+  TAccountKaminoLiquiditySupply extends string,
+  TAccountKaminoLendingProgram extends string,
+  TAccountInstructionSysvar extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
@@ -424,6 +502,14 @@ export function getClaimVaultInstruction<
     TAccountMint,
     TAccountNomineeAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -438,6 +524,14 @@ export function getClaimVaultInstruction<
   TAccountMint,
   TAccountNomineeAta,
   TAccountVaultAta,
+  TAccountVaultKTokenAta,
+  TAccountKTokenMint,
+  TAccountKaminoReserve,
+  TAccountKaminoLendingMarket,
+  TAccountKaminoLendingMarketAuthority,
+  TAccountKaminoLiquiditySupply,
+  TAccountKaminoLendingProgram,
+  TAccountInstructionSysvar,
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
   TAccountSystemProgram
@@ -454,6 +548,29 @@ export function getClaimVaultInstruction<
     mint: { value: input.mint ?? null, isWritable: false },
     nomineeAta: { value: input.nomineeAta ?? null, isWritable: true },
     vaultAta: { value: input.vaultAta ?? null, isWritable: true },
+    vaultKTokenAta: { value: input.vaultKTokenAta ?? null, isWritable: true },
+    kTokenMint: { value: input.kTokenMint ?? null, isWritable: false },
+    kaminoReserve: { value: input.kaminoReserve ?? null, isWritable: true },
+    kaminoLendingMarket: {
+      value: input.kaminoLendingMarket ?? null,
+      isWritable: false,
+    },
+    kaminoLendingMarketAuthority: {
+      value: input.kaminoLendingMarketAuthority ?? null,
+      isWritable: false,
+    },
+    kaminoLiquiditySupply: {
+      value: input.kaminoLiquiditySupply ?? null,
+      isWritable: true,
+    },
+    kaminoLendingProgram: {
+      value: input.kaminoLendingProgram ?? null,
+      isWritable: false,
+    },
+    instructionSysvar: {
+      value: input.instructionSysvar ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     associatedTokenProgram: {
       value: input.associatedTokenProgram ?? null,
@@ -467,6 +584,10 @@ export function getClaimVaultInstruction<
   >;
 
   // Resolve default values.
+  if (!accounts.instructionSysvar.value) {
+    accounts.instructionSysvar.value =
+      'Sysvar1nstructions1111111111111111111111111' as Address<'Sysvar1nstructions1111111111111111111111111'>;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' as Address<'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'>;
@@ -490,6 +611,14 @@ export function getClaimVaultInstruction<
       getAccountMeta(accounts.mint),
       getAccountMeta(accounts.nomineeAta),
       getAccountMeta(accounts.vaultAta),
+      getAccountMeta(accounts.vaultKTokenAta),
+      getAccountMeta(accounts.kTokenMint),
+      getAccountMeta(accounts.kaminoReserve),
+      getAccountMeta(accounts.kaminoLendingMarket),
+      getAccountMeta(accounts.kaminoLendingMarketAuthority),
+      getAccountMeta(accounts.kaminoLiquiditySupply),
+      getAccountMeta(accounts.kaminoLendingProgram),
+      getAccountMeta(accounts.instructionSysvar),
       getAccountMeta(accounts.tokenProgram),
       getAccountMeta(accounts.associatedTokenProgram),
       getAccountMeta(accounts.systemProgram),
@@ -505,6 +634,14 @@ export function getClaimVaultInstruction<
     TAccountMint,
     TAccountNomineeAta,
     TAccountVaultAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -517,57 +654,25 @@ export type ParsedClaimVaultInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /** permissionless keeper. */
+    /** Permissionless keeper — pays for any ATA creation. */
     executor: TAccountMetas[0];
     nominee: TAccountMetas[1];
-    /**
-     * The original vault owner — used only for PDA seed derivation.
-     * which checks vault.owner == owner.key() (belt-and-suspenders on top of seeds).
-     *
-     * as `owner` and, if seeds still resolve, bypass the stored-owner check.
-     */
     owner: TAccountMetas[2];
-    /**
-     * The vault PDA state account.
-     * `seeds + bump`     — derives and verifies the PDA address.
-     * `has_one = owner`  — explicit check: vault.owner == owner.key()     [LOOPHOLE-2]
-     * `has_one = nominee`— enforces payout destination from vault state.
-     * `has_one = mint`   — ensures the correct token mint account is passed.
-     * `close   = nominee`— Anchor transfers vault-state rent to nominee
-     * automatically once the handler returns successfully.
-     */
     vault: TAccountMetas[3];
-    /**
-     * The SPL token mint that was staked.
-     * Validated implicitly via `has_one = mint` on the vault above.
-     */
     mint: TAccountMetas[4];
-    /**
-     * Nominee's Associated Token Account — receives the staked tokens.
-     *
-     * LOOPHOLE-3 FIX: `init_if_needed` with explicit `associated_token::mint`
-     * and `associated_token::authority` constraints forces Anchor to validate
-     * the existing account's mint and owner fields even when the account
-     * already exists (i.e. it does NOT silently skip validation).
-     * A second layer of defence is applied in the handler itself via explicit
-     * runtime `require!` checks on nominee_ata.mint and nominee_ata.owner.
-     */
     nomineeAta: TAccountMetas[5];
-    /**
-     * Vault's Associated Token Account — holds the staked tokens.
-     *
-     * LOOPHOLE-1 FIX: `associated_token::authority = vault` means the vault
-     * PDA is the SOLE authority over this ATA.  The nominee (or anyone else)
-     * cannot call `spl_token::transfer` or `spl_token::close_account` directly
-     * on this account — they would need the vault PDA to sign, which is only
-     * possible through this program.  Setting authority = nominee here would
-     * allow the nominee to bypass the deadline check entirely by calling the
-     * SPL Token program directly.
-     */
     vaultAta: TAccountMetas[6];
-    tokenProgram: TAccountMetas[7];
-    associatedTokenProgram: TAccountMetas[8];
-    systemProgram: TAccountMetas[9];
+    vaultKTokenAta: TAccountMetas[7];
+    kTokenMint: TAccountMetas[8];
+    kaminoReserve: TAccountMetas[9];
+    kaminoLendingMarket: TAccountMetas[10];
+    kaminoLendingMarketAuthority: TAccountMetas[11];
+    kaminoLiquiditySupply: TAccountMetas[12];
+    kaminoLendingProgram: TAccountMetas[13];
+    instructionSysvar: TAccountMetas[14];
+    tokenProgram: TAccountMetas[15];
+    associatedTokenProgram: TAccountMetas[16];
+    systemProgram: TAccountMetas[17];
   };
   data: ClaimVaultInstructionData;
 };
@@ -580,7 +685,7 @@ export function parseClaimVaultInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>
 ): ParsedClaimVaultInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 10) {
+  if (instruction.accounts.length < 18) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -600,6 +705,14 @@ export function parseClaimVaultInstruction<
       mint: getNextAccount(),
       nomineeAta: getNextAccount(),
       vaultAta: getNextAccount(),
+      vaultKTokenAta: getNextAccount(),
+      kTokenMint: getNextAccount(),
+      kaminoReserve: getNextAccount(),
+      kaminoLendingMarket: getNextAccount(),
+      kaminoLendingMarketAuthority: getNextAccount(),
+      kaminoLiquiditySupply: getNextAccount(),
+      kaminoLendingProgram: getNextAccount(),
+      instructionSysvar: getNextAccount(),
       tokenProgram: getNextAccount(),
       associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),

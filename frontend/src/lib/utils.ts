@@ -15,15 +15,17 @@ export const getOwnerProfilePda = (owner: PublicKey): [PublicKey, number] => {
   );
 };
 
-export const getVaultPda = (owner: PublicKey, vaultId: bigint | number): [PublicKey, number] => {
+export const getVaultPda = (
+  owner: PublicKey,
+  vaultId: bigint | number
+): [PublicKey, number] => {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("vault"), owner.toBuffer(), u64ToSeed(vaultId)],
     new PublicKey(PROGRAM_ID)
   );
 };
 
-export const formatTimeRemaining = (deadline: number): string => {
-  const now = Math.floor(Date.now() / 1000);
+export const formatTimeRemaining = (deadline: number, now: number): string => {
   const remaining = deadline - now;
 
   if (remaining <= 0) return "Expired";
