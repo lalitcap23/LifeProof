@@ -1,4 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
+import type { ProofPol } from "../target/types/proof_pol";
 import {
   Keypair,
   Connection,
@@ -50,7 +51,7 @@ function getDevnetKTokenMint(stakeMint: string): string {
 }
 
 async function claimOneVault(
-  program: anchor.Program,
+  program: anchor.Program<ProofPol>,
   keeper: Keypair,
   vaultAddress: PublicKey,
   vault: {
@@ -101,7 +102,7 @@ async function claimOneVault(
   return sig;
 }
 
-async function scanAndClaim(program: anchor.Program, keeper: Keypair): Promise<void> {
+async function scanAndClaim(program: anchor.Program<ProofPol>, keeper: Keypair): Promise<void> {
   console.log(`\n${"─".repeat(60)}`);
   console.log(`[${new Date().toISOString()}]  Scanning for claimable vaults...`);
 
@@ -159,7 +160,10 @@ async function main(): Promise<void> {
   });
   anchor.setProvider(provider);
 
-  const program = new anchor.Program(IDL, provider);
+  const program = new anchor.Program(
+    IDL as anchor.Idl,
+    provider
+  ) as anchor.Program<ProofPol>;
 
   console.log("╔══════════════════════════════════════════════╗");
   console.log("║     Proof-of-Life Keeper Bot  (DEVNET)       ║");
