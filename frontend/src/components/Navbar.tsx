@@ -18,6 +18,12 @@ export const Navbar: FC = () => {
 
           <div className="flex items-center gap-6">
             <Link
+              href="/"
+              className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
+            >
+              Home
+            </Link>
+            <Link
               href="/dashboard"
               className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
             >
