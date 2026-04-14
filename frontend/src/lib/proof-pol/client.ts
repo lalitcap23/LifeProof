@@ -400,6 +400,38 @@ export class ProofPolClient {
     return decodeVaultBytes(accountInfo.data);
   }
 
+  /**
+   * Fetch ALL active vaults across the entire protocol (no owner filter).
+   * Used by the Good Samaritan / keeper dashboard to find claimable vaults.
+   *
+   * Offset 144 in CommitmentVault = isActive byte (1 = active).
+   * Layout: 8 disc + 32 owner + 8 vaultId + 32 nominee + 32 mint
+   *       + 8 stakeAmount + 8 checkinInterval + 8 lastCheckin + 8 deadline
+   *       = 144 → isActive
+   */
+  async fetchAllActiveVaults(): Promise<VaultAccountData[]> {
+    const vaultDiscriminator = bs58.encode(COMMITMENT_VAULT_DISCRIMINATOR);
+    const isActiveByte = bs58.encode(Buffer.from([1]));
+
+    const rawAccounts = await this.connection.getProgramAccounts(
+      new PublicKey(PROOF_POL_PROGRAM_ADDRESS),
+      {
+        filters: [
+          { memcmp: { offset: 0,   bytes: vaultDiscriminator } },
+          { memcmp: { offset: 144, bytes: isActiveByte } },
+        ],
+      }
+    );
+
+    return rawAccounts
+      .map(({ pubkey, account }) => {
+        const data = decodeVaultBytes(account.data);
+        if (!data) return null;
+        return { address: pubkey.toBase58(), data };
+      })
+      .filter((v): v is VaultAccountData => v !== null);
+  }
+
   async fetchVaults(owner?: PublicKey): Promise<VaultAccountData[]> {
     const ownerKey = owner || this.publicKey;
     const vaultDiscriminator = bs58.encode(COMMITMENT_VAULT_DISCRIMINATOR);
@@ -584,8 +616,17 @@ export class ProofPolClient {
       mint: address(params.mintAddress),
       ...kaminoAccounts,
     });
-    return this.sendTransaction(
-      codamaToWeb3Instruction(instruction as unknown as CodamaInstruction)
+
+    const ix = codamaToWeb3Instruction(instruction as unknown as CodamaInstruction);
+
+    
+    const nomineeIndex = ix.keys.findIndex(
+      (k) => k.pubkey.toBase58() === params.nomineeAddress
     );
+    if (nomineeIndex !== -1) {
+      ix.keys[nomineeIndex].isWritable = true;
+    }
+
+    return this.sendTransaction(ix);
   }
 }

@@ -29,6 +29,13 @@ export const Navbar: FC = () => {
             >
               Create Vault
             </Link>
+            <Link
+              href="/keeper"
+              className="text-sm font-medium text-gray-600 hover:text-black transition-colors flex items-center gap-1.5"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-black inline-block" />
+              Help Others
+            </Link>
             <WalletButton />
           </div>
         </div>
