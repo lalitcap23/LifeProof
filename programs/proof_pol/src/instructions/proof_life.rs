@@ -6,7 +6,7 @@ use crate::state::CommitmentVault;
 
 #[derive(Accounts)]  
 pub struct ProofOfLife<'info> {
-    /// The vault owner - must sign to prove they are alive.
+    /// The vault owner must sign to prove they are alive
     #[account(mut)]
     pub owner: Signer<'info>,
 
@@ -20,7 +20,6 @@ pub struct ProofOfLife<'info> {
 }
 
 
-/// Resets `last_checkin` to now, and recalculates the next deadline.
 pub fn handler(ctx: Context<ProofOfLife>) -> Result<()> {
     let vault = &mut ctx.accounts.vault;
 

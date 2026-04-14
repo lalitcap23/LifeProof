@@ -8,17 +8,22 @@ use crate::constants::{CLAIM_GRACE_PERIOD, VAULT_SEED};
 use crate::error::ErrorCode;
 use crate::state::CommitmentVault;
 
+#[cfg(feature = "mainnet")]
+use crate::kamino_cpi::{redeem_reserve_collateral, RedeemReserveCollateralAccounts};
+
+
 
 #[derive(Accounts)]
 pub struct ClaimVault<'info> {
-    /// permissionless keeper.
+    /// Permissionless keeper 
     #[account(mut)]
     pub executor: Signer<'info>,
 
-    /// CHECK: validated via `has_one = nominee` 
+    /// CHECK: validated via `has_one = nominee` on vault.
+    #[account(mut)]
     pub nominee: UncheckedAccount<'info>,
 
-    /// CHECK: address verified via seeds derivation AND `has_one = owner` on vault.
+    /// CHECK: verified via seeds + `has_one = owner`.
     pub owner: UncheckedAccount<'info>,
 
     #[account(
@@ -30,76 +35,64 @@ pub struct ClaimVault<'info> {
         has_one = mint,
         close   = nominee,
     )]
-    pub vault: Account<'info, CommitmentVault>,
+    pub vault: Box<Account<'info, CommitmentVault>>,
 
-    /// Validated implicitly via `has_one = mint` on the vault above.
-    pub mint: Account<'info, Mint>,
+    pub mint: Box<Account<'info, Mint>>,
 
-    /// LOOPHOLE-3 FIX: `init_if_needed` with explicit `associated_token::mint`
-    /// and `associated_token::authority` constraints forces Anchor to validate
-    /// the existing account's mint and owner fields even when the account
-    /// already exists (i.e. it does NOT silently skip validation).
-    /// A second layer of defence is applied in the handler itself via explicit
-    /// runtime `require!` checks on nominee_ata.mint and nominee_ata.owner.
     #[account(
         init_if_needed,
         payer                       = executor,
         associated_token::mint      = mint,
         associated_token::authority = nominee,
     )]
-    pub nominee_ata: Account<'info, TokenAccount>,
+    pub nominee_ata: Box<Account<'info, TokenAccount>>,
 
-    /// LOOPHOLE-1 FIX: `associated_token::authority = vault` means the vault
-    /// PDA is the SOLE authority over this ATA.  The nominee (or anyone else)
-    /// cannot call `spl_token::transfer` or `spl_token::close_account` directly
-    /// on this account — they would need the vault PDA to sign, which is only
-    /// possible through this program.  Setting authority = nominee here would
-    /// allow the nominee to bypass the deadline check entirely by calling the
-    /// SPL Token program directly.
     #[account(
         mut,
         associated_token::mint      = mint,
         associated_token::authority = vault,
     )]
-    pub vault_ata: Account<'info, TokenAccount>,
+    pub vault_ata: Box<Account<'info, TokenAccount>>,
 
-    pub token_program: Program<'info, Token>,
+    // Kamino redemption accounts (present always; used only on mainnet)
+    #[account(
+        mut,
+        associated_token::mint      = k_token_mint,
+        associated_token::authority = vault,
+    )]
+    pub vault_k_token_ata: Box<Account<'info, TokenAccount>>,
+
+    pub k_token_mint: Box<Account<'info, Mint>>,
+
+    /// CHECK: Kamino reserve.
+    pub kamino_reserve: UncheckedAccount<'info>,
+
+    /// CHECK: Kamino lending market.
+    pub kamino_lending_market: UncheckedAccount<'info>,
+
+    /// CHECK: Kamino lending market authority PDA.
+    pub kamino_lending_market_authority: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub kamino_liquidity_supply: Box<Account<'info, TokenAccount>>,
+
+    /// CHECK: Kamino lending program.
+    pub kamino_lending_program: UncheckedAccount<'info>,
+
+    /// CHECK: Instructions sysvar.
+    #[account(address = anchor_lang::solana_program::sysvar::instructions::ID)]
+    pub instruction_sysvar: UncheckedAccount<'info>,
+
+    pub token_program:            Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub system_program: Program<'info, System>,
+    pub system_program:           Program<'info, System>,
 }
 
-/// Anyone can execute claim once `deadline + grace_period` is reached.
-/// Funds always go to the nominee recorded in vault state.
-///
-/// Loopholes closed
-///  1. vault_ata authority = vault PDA only — nominee cannot bypass this program
-///     by calling SPL Token directly.
-///  2. `has_one = owner` on vault — explicitly verifies vault.owner == owner.key()
-///     on top of the seeds derivation, closing the UncheckedAccount ambiguity.
-///  3. Runtime `require!` checks on nominee_ata.mint and nominee_ata.owner —
-///     defence-in-depth on top of Anchor's ATA constraint validation.
-///  4. `vault.is_active` is explicitly set to `false` before the handler returns,
-///     ensuring the flag reflects reality even in edge cases where the account
-///     close is somehow deferred.
-///  5. `require!(vault_ata.amount > 0)` — rejects a claim on an already-empty
-///     vault ATA so the nominee cannot grief the owner by closing a zero-balance
-///     vault and claiming the rent without any tokens being present.
-/// Execution steps
-///   1. Guard: vault must be active.
-///   2. Guard: current on-chain clock must be >= (deadline + grace_period).
-///   3. Guard: vault ATA must hold more than 0 tokens.           [LOOPHOLE-5]
-///   4. Runtime ATA sanity checks on nominee_ata.                [LOOPHOLE-3]
-///   5. Build vault PDA signer seeds.
-///   6. CPI → SPL Token: transfer tokens vault ATA → nominee ATA (PDA signs).
-///   7. CPI → SPL Token: close vault ATA; rent goes to nominee   (PDA signs).
-///   8. Explicitly mark vault.is_active = false.                 [LOOPHOLE-4]
-///   9. Anchor closes vault PDA state via `close = nominee` on handler exit.
-pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
-    // vault must be active 
 
+pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
+    // Guards
     require!(ctx.accounts.vault.is_active, ErrorCode::VaultInactive);
 
-    // deadline + grace period must have elapsed
     let now = Clock::get()?.unix_timestamp;
     let claimable_at = ctx
         .accounts
@@ -107,111 +100,95 @@ pub fn handler(ctx: Context<ClaimVault>) -> Result<()> {
         .deadline
         .checked_add(CLAIM_GRACE_PERIOD as i64)
         .ok_or(ErrorCode::Overflow)?;
-    require!(
-        now >= claimable_at,
-        ErrorCode::ClaimGracePeriodNotPassed
-    );
-
-    // Prevents a nominee from claiming a vault whose ATA was already drained
-    // (e.g., due to a bug elsewhere) and only obtaining the rent lamports.
-
-    require!(ctx.accounts.vault_ata.amount > 0, ErrorCode::VaultEmpty);
-
-    //  runtime nominee ATA sanity checks [LOOPHOLE-3]
-    //
-    // Anchor's `associated_token::` constraints already validate these fields
-    // at the account-loading stage.  These `require!` calls are a second,
-    // explicit layer of defence-in-depth inside the handler itself, ensuring
-    // that even if a constraint bug or future refactor weakens the struct-level
-    // checks, the handler will still reject a mismatched ATA.
+    require!(now >= claimable_at, ErrorCode::ClaimGracePeriodNotPassed);
 
     require!(
-        ctx.accounts.nominee_ata.mint == ctx.accounts.mint.key(),
-        ErrorCode::NomineeAtaMintMismatch
+        ctx.accounts.nominee_ata.mint  == ctx.accounts.mint.key(),
+        ErrorCode::NomineeAtaMintMismatch,
     );
     require!(
         ctx.accounts.nominee_ata.owner == ctx.accounts.nominee.key(),
-        ErrorCode::NomineeAtaOwnerMismatch
+        ErrorCode::NomineeAtaOwnerMismatch,
     );
 
-    // build vault PDA signer seeds
-    //
-    // Seeds: [b"vault", owner_pubkey_bytes, vault_id_le_bytes, bump_byte]
-    // Both `bump_bytes` and `owner_key` are named stack locals so their
-    // lifetimes outlive the `vault_seeds` slice — avoids the
-    // "temporary value dropped while borrowed" compile error.
-
-    let bump_bytes = [ctx.accounts.vault.bump];
+    // Build vault PDA signer seeds.
+    let bump_bytes     = [ctx.accounts.vault.bump];
     let vault_id_bytes = ctx.accounts.vault.vault_id.to_le_bytes();
-    let owner_key = ctx.accounts.owner.key();
+    let owner_key      = ctx.accounts.owner.key();
     let vault_seeds: &[&[u8]] = &[VAULT_SEED, owner_key.as_ref(), &vault_id_bytes, &bump_bytes];
-    let signer = &[vault_seeds];
+    let signer_seeds = &[vault_seeds];
 
-    // Snapshot the balance before any CPI can modify the ATA.
+    // [MAINNET ONLY] Redeem kTokens → tokens land in vault_ata.
+    #[cfg(feature = "mainnet")]
+    if ctx.accounts.vault.yield_deposited {
+        let k_amount = ctx.accounts.vault_k_token_ata.amount;
+        require!(k_amount > 0, ErrorCode::VaultEmpty);
+
+        redeem_reserve_collateral(
+            RedeemReserveCollateralAccounts {
+                owner:                      ctx.accounts.vault.to_account_info(),
+                lending_market:             ctx.accounts.kamino_lending_market.to_account_info(),
+                reserve:                    ctx.accounts.kamino_reserve.to_account_info(),
+                lending_market_authority:   ctx.accounts.kamino_lending_market_authority.to_account_info(),
+                reserve_liquidity_mint:     ctx.accounts.mint.to_account_info(),
+                reserve_collateral_mint:    ctx.accounts.k_token_mint.to_account_info(),
+                reserve_liquidity_supply:   ctx.accounts.kamino_liquidity_supply.to_account_info(),
+                user_source_collateral:     ctx.accounts.vault_k_token_ata.to_account_info(),
+                user_destination_liquidity: ctx.accounts.vault_ata.to_account_info(),
+                collateral_token_program:   ctx.accounts.token_program.to_account_info(),
+                liquidity_token_program:    ctx.accounts.token_program.to_account_info(),
+                instruction_sysvar:         ctx.accounts.instruction_sysvar.to_account_info(),
+                kamino_program:             ctx.accounts.kamino_lending_program.to_account_info(),
+            },
+            k_amount,
+            signer_seeds,
+        )?;
+
+        ctx.accounts.vault_ata.reload()?;
+        msg!(
+            "Kamino redemption (claim): {} kTokens → {} tokens",
+            k_amount, ctx.accounts.vault_ata.amount,
+        );
+    }
+
     let token_amount = ctx.accounts.vault_ata.amount;
+    require!(token_amount > 0, ErrorCode::VaultEmpty);
 
-    //CPI: transfer tokens vault ATA → nominee ATA
-    //
-    // The vault PDA is the authority on vault_ata (LOOPHOLE-1).
-    // `CpiContext::new_with_signer` supplies the PDA seeds so the runtime
-    // accepts the PDA as a valid signer for this call.
-    // The nominee wallet has NO direct authority over vault_ata at any point.
-
+    // Transfer: vault_ata  nominee_ata
     transfer(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
-                from: ctx.accounts.vault_ata.to_account_info(),
-                to: ctx.accounts.nominee_ata.to_account_info(),
+                from:      ctx.accounts.vault_ata.to_account_info(),
+                to:        ctx.accounts.nominee_ata.to_account_info(),
                 authority: ctx.accounts.vault.to_account_info(),
             },
-            signer,
+            signer_seeds,
         ),
         token_amount,
     )?;
 
-    // CPI: close vault ATA; rent → nominee
-    //
-    // The vault ATA now holds 0 tokens.  `close_account` zeroes the account
-    // and sends its rent-exempt reserve to the nominee.
-    // The vault PDA must sign here too because it is still the ATA's authority.
-
+    // Close vault_ata; rent to nominee
     close_account(CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info(),
         CloseAccount {
-            account: ctx.accounts.vault_ata.to_account_info(),
+            account:     ctx.accounts.vault_ata.to_account_info(),
             destination: ctx.accounts.nominee.to_account_info(),
-            authority: ctx.accounts.vault.to_account_info(),
+            authority:   ctx.accounts.vault.to_account_info(),
         },
-        signer,
+        signer_seeds,
     ))?;
-
-    //  explicitly mark vault inactive [LOOPHOLE-4]
-    //
-    // Anchor's `close = nominee` constraint will zero the account data on exit,
-    // but we set is_active = false explicitly here so that the flag accurately
-    // reflects state for the remainder of this stack frame and for any off-chain
-    // tools that may snapshot account data mid-instruction.
-    // This is set AFTER all CPIs so that the vault AccountInfo is no longer
-    // needed as a CPI authority — avoiding any borrow conflicts.
 
     ctx.accounts.vault.is_active = false;
 
     msg!(
-        "claim_vault: executor={} nominee={} claimed {} token units | mint={} | owner={} | deadline={} | claimable_at={}",
+        "claim_vault: executor={} nominee={} claimed {} tokens | mint={} | owner={}",
         ctx.accounts.executor.key(),
         ctx.accounts.nominee.key(),
         token_amount,
         ctx.accounts.mint.key(),
         ctx.accounts.owner.key(),
-        ctx.accounts.vault.deadline,
-        claimable_at,
     );
-
-    //  vault PDA state closed by Anchor
-    // The `close = nominee` constraint transfers all remaining lamports from
-    // the vault PDA state account to the nominee and zeroes the account data
-    // automatically when this handler returns Ok(()).
 
     Ok(())
 }
