@@ -67,4 +67,9 @@ pub enum ErrorCode {
     /// Integer overflow in deadline calculation.
     #[msg("Arithmetic overflow when computing deadline timestamp.")]
     Overflow,
+
+    // Kamino yield integration
+    /// The Kamino lending program account does not match the expected program ID.
+    #[msg("Invalid Kamino lending program — address mismatch.")]
+    InvalidKaminoProgram,
 }

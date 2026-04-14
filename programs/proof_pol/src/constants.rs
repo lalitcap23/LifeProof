@@ -25,9 +25,51 @@ pub const PLATFORM_WALLET: Pubkey = pubkey!("99xMByFHuyHspBCeygNAMya9jixwb2RsMsM
 
 pub const PLATFORM_FEE_USDC: u64 = 1_000_000;
 
-// ---------------------------------------------------------------------------
+// Kamino Lending — Mainnet Addresses (used only under #[cfg(feature = "mainnet")])
+
+/// Kamino Lending program ID (KLend) — mainnet-beta.
+/// Source: https://github.com/Kamino-Finance/klend
+pub const KAMINO_LENDING_PROGRAM_ID: Pubkey =
+    pubkey!("KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD");
+
+/// Kamino main lending market — holds all reserve configs.
+/// This is the primary market supporting USDC and SOL reserves.
+pub const KAMINO_LENDING_MARKET: Pubkey =
+    pubkey!("7u3HeHxYDLhnCoErrtycNokbQYbWGzLs6JSDqGAv5PfF");
+
+/// Kamino lending market authority PDA.
+/// Derived as: PDA([b"lma", lending_market], kamino_program)
+pub const KAMINO_LENDING_MARKET_AUTHORITY: Pubkey =
+    pubkey!("MxUXBKEPJ8aRrUMkKqxiGCEuGiuMqZMGnXbGcMb3q1G");
+
+/// Kamino USDC reserve — tracks all USDC deposits + yield.
+pub const KAMINO_USDC_RESERVE: Pubkey =
+    pubkey!("D6q6wuQSriferjmtEkLeX43LchsCRchy3udgXahhby7o");
+
+/// Kamino USDC liquidity supply vault — holds deposited USDC tokens.
+pub const KAMINO_USDC_LIQUIDITY_SUPPLY: Pubkey =
+    pubkey!("Bfo4KinBSAhGAiS6SXJAXhXfJGTJAYSGXHUXkAP44Gp");
+
+/// Kamino USDC collateral mint — the kUSDC receipt token (kToken).
+pub const KAMINO_USDC_COLLATERAL_MINT: Pubkey =
+    pubkey!("FgSsGV8GByPaMERxeQJPvZRTTx1wFB5s8i3zHF3JM4sm");
+
+/// Kamino wSOL reserve — tracks all wSOL deposits + yield.
+pub const KAMINO_SOL_RESERVE: Pubkey =
+    pubkey!("d4A2prbA2whesmvHaL88BH6Ewn5N4bTSU2Ze8P6Bc4Q");
+
+/// Kamino wSOL liquidity supply vault — holds deposited wSOL tokens.
+pub const KAMINO_SOL_LIQUIDITY_SUPPLY: Pubkey =
+    pubkey!("GKnHiWh3Ruk1P3E1H2vgNJBMBcgEK65sBhj1CDq6EtMF");
+
+/// Kamino wSOL collateral mint — the kSOL receipt token (kToken).
+pub const KAMINO_SOL_COLLATERAL_MINT: Pubkey =
+    pubkey!("H9vmCVd77N1HZa36eBn3UnftYmg4vDBn1Xp8fcjeQzSr");
+
 // Supported Stake Token Mints (Solana Mainnet)
-// ---------------------------------------------------------------------------
+
+/// 9 decimals.
+pub const MINT_WSOL: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 
 /// Circle USDC — native Solana mint (6 decimals).
 pub const MINT_USDC: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");

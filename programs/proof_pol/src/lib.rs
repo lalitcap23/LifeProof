@@ -3,6 +3,10 @@ pub mod error;
 pub mod instructions;
 pub mod state;
 
+/// Raw Kamino lending CPI helpers (compiled only on mainnet builds)
+#[cfg(feature = "mainnet")]
+pub mod kamino_cpi;
+
 use anchor_lang::prelude::*;
 
 pub use constants::*;
@@ -25,8 +29,6 @@ pub mod proof_pol {
         initialize_vault::handler(ctx, vault_id, stake_amount, checkin_interval)
     }
 
-    /// Submit proof-of-life to reset the deadline.
-    /// Must be called by the vault owner before the current deadline expires.
     pub fn proof_of_life(ctx: Context<ProofOfLife>) -> Result<()> {
         proof_life::handler(ctx)
     }
@@ -37,7 +39,6 @@ pub mod proof_pol {
         claim::handler(ctx)
     }
 
-    /// Only valid while the deadline has not yet passed.
     pub fn close_vault(ctx: Context<CloseVault>) -> Result<()> {
         close::handler(ctx)
     }
