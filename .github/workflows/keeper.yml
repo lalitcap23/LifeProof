@@ -48,7 +48,14 @@ jobs:
         run: |
           node -e "
             const { Keypair } = require('@solana/web3.js');
-            const arr = JSON.parse(process.env.KEEPER_KEYPAIR);
+            const raw = process.env.KEEPER_KEYPAIR;
+            if (!raw || !raw.trim()) { console.error('KEEPER_KEYPAIR secret is empty'); process.exit(1); }
+            let arr;
+            try { arr = JSON.parse(raw.trim()); } catch (e) {
+              console.error('KEEPER_KEYPAIR must be valid JSON: the full Solana keypair file as one line [n,n,...]');
+              console.error('Not base58. Copy from: cat keeper-wallet.json');
+              process.exit(1);
+            }
             const kp = Keypair.fromSecretKey(Uint8Array.from(arr));
             console.log('Keeper wallet:', kp.publicKey.toBase58());
           "

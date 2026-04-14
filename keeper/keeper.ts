@@ -32,12 +32,15 @@ function loadKeeperKeypair(): Keypair {
     );
   }
   try {
-    const arr: number[] = JSON.parse(raw);
+    const trimmed = raw.trim();
+    const arr: number[] = JSON.parse(trimmed);
     return Keypair.fromSecretKey(Uint8Array.from(arr));
   } catch {
     throw new Error(
-      "Could not parse KEEPER_KEYPAIR — must be a JSON array: [12, 45, 67, ...]\n" +
-      "Run: export KEEPER_KEYPAIR=\"$(cat keeper-wallet.json)\"\n"
+      "Could not parse KEEPER_KEYPAIR — must be the exact contents of a Solana keypair JSON file:\n" +
+      "  one line like [12,45,67,...] (64 numbers). Not base58, not quoted as a string.\n" +
+      "Generate: solana-keygen new --outfile keeper-wallet.json\n" +
+      "GitHub Secret: paste the entire file body (Repository → Settings → Secrets).\n"
     );
   }
 }
