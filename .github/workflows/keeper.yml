@@ -10,8 +10,7 @@ on:
         required: false
         default: "manual check"
 
-# GitHub is deprecating Actions that still embed Node 20. checkout@v5 / setup-node@v5
-# run on Node 24. See: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+# checkout@v5 / setup-node@v5 use Node 24-compatible action runtime (Node 20 deprecation).
 jobs:
   claim-expired-vaults:
     name: Scan and Claim Expired Vaults
@@ -28,8 +27,10 @@ jobs:
           node-version: "22"
           cache: "npm"
 
+      # Full install uses root .npmrc (legacy-peer-deps). Omit dev to skip bankrun + test-only
+      # packages — keeper only needs @coral-xyz/anchor, @solana/spl-token, ts-node, etc.
       - name: Install dependencies
-        run: npm install
+        run: npm ci --omit=dev
 
       - name: Check IDL exists
         run: |
@@ -52,8 +53,6 @@ jobs:
             console.log('Keeper wallet:', kp.publicKey.toBase58());
           "
 
-      # Scans every active vault; if none are past deadline + grace, the script
-      # exits successfully with nothing to claim — that is expected.
       - name: Run keeper — scan and claim expired vaults
         env:
           KEEPER_KEYPAIR: ${{ secrets.KEEPER_KEYPAIR }}

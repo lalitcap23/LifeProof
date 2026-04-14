@@ -161,7 +161,7 @@ Domain constants (mints, Kamino reserve addresses for UI-side account ordering w
 - Scans vault PDAs for the owner pattern your protocol uses, decodes deadlines, compares to `now` with the same **`CLAIM_GRACE_PERIOD`** semantics as on-chain (`172_800` seconds).  
 - **`--once`** or **`CI=true`**: single scan and exit (GitHub Actions). Otherwise optional long-interval loop for a server.
 
-**Automation:** `.github/workflows/keeper.yml` — scheduled **`cron: "0 0 */2 * *"`** (every two days UTC) plus **`workflow_dispatch`** for manual runs. The workflow uses **`actions/checkout@v5`** and **`actions/setup-node@v5`** (Node 24–compatible action runtime per GitHub’s Node 20 deprecation) with **Node 22** for running `ts-node`. If no vaults are past deadline + grace, the keeper finishes with **no claims** and the job is still **green** — that is normal.
+**Automation:** `.github/workflows/keeper.yml` — scheduled **`cron: "0 0 */2 * *"`** (every two days UTC) plus **`workflow_dispatch`** for manual runs. The workflow uses **`actions/checkout@v5`** and **`actions/setup-node@v5`** with **Node 22**, then **`npm ci --omit=dev`**: production dependencies only (no `anchor-bankrun` / `solana-bankrun` / test tools). Root **`.npmrc`** sets **`legacy-peer-deps=true`** so local **`npm install`** still resolves **`anchor-bankrun`** (peer Anchor `^0.30` vs project `0.32`) for **`anchor test`**. If no vaults are past deadline + grace, the keeper finishes with **no claims** and the job is still **green** — that is normal.
 
 ---
 
