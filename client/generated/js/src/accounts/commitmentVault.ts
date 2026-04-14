@@ -60,7 +60,10 @@ export type CommitmentVault = {
   nominee: Address;
   /** Used to validate the correct token accounts are passed on claim/close. */
   mint: Address;
-  /** Actual tokens live in the vault's Associated Token Account (ATA). */
+  /**
+   * Actual tokens live in the vault's Associated Token Account (ATA)
+   * on devnet, or inside Kamino on mainnet.
+   */
   stakeAmount: bigint;
   checkinInterval: bigint;
   lastCheckin: bigint;
@@ -70,6 +73,21 @@ export type CommitmentVault = {
    */
   deadline: bigint;
   isActive: boolean;
+  /**
+   * True when tokens have been deposited into Kamino (mainnet only).
+   * False on devnet — tokens remain in vault_ata.
+   */
+  yieldDeposited: boolean;
+  /**
+   * Kamino collateral (kToken) mint received after deposit.
+   * Pubkey::default() on devnet.
+   */
+  kTokenMint: Address;
+  /**
+   * Number of kTokens held in the vault's kToken ATA.
+   * 0 on devnet.
+   */
+  kTokenAmount: bigint;
   bump: number;
 };
 
@@ -79,7 +97,10 @@ export type CommitmentVaultArgs = {
   nominee: Address;
   /** Used to validate the correct token accounts are passed on claim/close. */
   mint: Address;
-  /** Actual tokens live in the vault's Associated Token Account (ATA). */
+  /**
+   * Actual tokens live in the vault's Associated Token Account (ATA)
+   * on devnet, or inside Kamino on mainnet.
+   */
   stakeAmount: number | bigint;
   checkinInterval: number | bigint;
   lastCheckin: number | bigint;
@@ -89,6 +110,21 @@ export type CommitmentVaultArgs = {
    */
   deadline: number | bigint;
   isActive: boolean;
+  /**
+   * True when tokens have been deposited into Kamino (mainnet only).
+   * False on devnet — tokens remain in vault_ata.
+   */
+  yieldDeposited: boolean;
+  /**
+   * Kamino collateral (kToken) mint received after deposit.
+   * Pubkey::default() on devnet.
+   */
+  kTokenMint: Address;
+  /**
+   * Number of kTokens held in the vault's kToken ATA.
+   * 0 on devnet.
+   */
+  kTokenAmount: number | bigint;
   bump: number;
 };
 
@@ -105,6 +141,9 @@ export function getCommitmentVaultEncoder(): FixedSizeEncoder<CommitmentVaultArg
       ['lastCheckin', getI64Encoder()],
       ['deadline', getI64Encoder()],
       ['isActive', getBooleanEncoder()],
+      ['yieldDeposited', getBooleanEncoder()],
+      ['kTokenMint', getAddressEncoder()],
+      ['kTokenAmount', getU64Encoder()],
       ['bump', getU8Encoder()],
     ]),
     (value) => ({ ...value, discriminator: COMMITMENT_VAULT_DISCRIMINATOR })
@@ -123,6 +162,9 @@ export function getCommitmentVaultDecoder(): FixedSizeDecoder<CommitmentVault> {
     ['lastCheckin', getI64Decoder()],
     ['deadline', getI64Decoder()],
     ['isActive', getBooleanDecoder()],
+    ['yieldDeposited', getBooleanDecoder()],
+    ['kTokenMint', getAddressDecoder()],
+    ['kTokenAmount', getU64Decoder()],
     ['bump', getU8Decoder()],
   ]);
 }

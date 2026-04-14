@@ -66,6 +66,16 @@ export type InitializeVaultInstruction<
   TAccountPlatformWallet extends string | AccountMeta<string> =
     '99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q',
   TAccountPlatformUsdcAta extends string | AccountMeta<string> = string,
+  TAccountVaultKTokenAta extends string | AccountMeta<string> = string,
+  TAccountKTokenMint extends string | AccountMeta<string> = string,
+  TAccountKaminoReserve extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingMarket extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingMarketAuthority extends string | AccountMeta<string> =
+    string,
+  TAccountKaminoLiquiditySupply extends string | AccountMeta<string> = string,
+  TAccountKaminoLendingProgram extends string | AccountMeta<string> = string,
+  TAccountInstructionSysvar extends string | AccountMeta<string> =
+    'Sysvar1nstructions1111111111111111111111111',
   TAccountTokenProgram extends string | AccountMeta<string> =
     'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
@@ -111,6 +121,30 @@ export type InitializeVaultInstruction<
       TAccountPlatformUsdcAta extends string
         ? WritableAccount<TAccountPlatformUsdcAta>
         : TAccountPlatformUsdcAta,
+      TAccountVaultKTokenAta extends string
+        ? WritableAccount<TAccountVaultKTokenAta>
+        : TAccountVaultKTokenAta,
+      TAccountKTokenMint extends string
+        ? ReadonlyAccount<TAccountKTokenMint>
+        : TAccountKTokenMint,
+      TAccountKaminoReserve extends string
+        ? WritableAccount<TAccountKaminoReserve>
+        : TAccountKaminoReserve,
+      TAccountKaminoLendingMarket extends string
+        ? ReadonlyAccount<TAccountKaminoLendingMarket>
+        : TAccountKaminoLendingMarket,
+      TAccountKaminoLendingMarketAuthority extends string
+        ? ReadonlyAccount<TAccountKaminoLendingMarketAuthority>
+        : TAccountKaminoLendingMarketAuthority,
+      TAccountKaminoLiquiditySupply extends string
+        ? WritableAccount<TAccountKaminoLiquiditySupply>
+        : TAccountKaminoLiquiditySupply,
+      TAccountKaminoLendingProgram extends string
+        ? ReadonlyAccount<TAccountKaminoLendingProgram>
+        : TAccountKaminoLendingProgram,
+      TAccountInstructionSysvar extends string
+        ? ReadonlyAccount<TAccountInstructionSysvar>
+        : TAccountInstructionSysvar,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
         : TAccountTokenProgram,
@@ -180,6 +214,14 @@ export type InitializeVaultAsyncInput<
   TAccountOwnerUsdcAta extends string = string,
   TAccountPlatformWallet extends string = string,
   TAccountPlatformUsdcAta extends string = string,
+  TAccountVaultKTokenAta extends string = string,
+  TAccountKTokenMint extends string = string,
+  TAccountKaminoReserve extends string = string,
+  TAccountKaminoLendingMarket extends string = string,
+  TAccountKaminoLendingMarketAuthority extends string = string,
+  TAccountKaminoLiquiditySupply extends string = string,
+  TAccountKaminoLendingProgram extends string = string,
+  TAccountInstructionSysvar extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
@@ -187,22 +229,39 @@ export type InitializeVaultAsyncInput<
   owner: TransactionSigner<TAccountOwner>;
   nominee: Address<TAccountNominee>;
   ownerProfile?: Address<TAccountOwnerProfile>;
-  /** PDA vault state account — created and rent-funded by `owner`. */
+  /** PDA vault state account. */
   vault?: Address<TAccountVault>;
-  /** Any valid SPL mint is accepted */
+  /** The SPL token mint being staked (USDC or wSOL on mainnet). */
   mint: Address<TAccountMint>;
-  /** Anchor validates: correct mint + correct owner authority. */
+  /** Owner's token ATA — tokens are pulled from here. */
   ownerAta?: Address<TAccountOwnerAta>;
   /**
-   * Vault's Associated Token Account — holds staked tokens for the vault's lifetime.
-   * The vault PDA is the sole authority, so only the program can move tokens out.
-   * `init` (not `init_if_needed`) because the vault PDA is always brand-new here.
+   * Vault's token ATA — holds tokens on devnet; used as staging on mainnet
+   * before the Kamino CPI moves them into the reserve.
    */
   vaultAta?: Address<TAccountVaultAta>;
   usdcMint: Address<TAccountUsdcMint>;
   ownerUsdcAta?: Address<TAccountOwnerUsdcAta>;
   platformWallet?: Address<TAccountPlatformWallet>;
   platformUsdcAta?: Address<TAccountPlatformUsdcAta>;
+  /**
+   * Vault's kToken ATA — receives Kamino receipt tokens on mainnet.
+   * Created here so the ATA exists. On devnet it stays empty.
+   */
+  vaultKTokenAta?: Address<TAccountVaultKTokenAta>;
+  /**
+   * Kamino collateral/receipt token mint (kUSDC or kSOL on mainnet).
+   * On devnet: pass `mint` itself as a placeholder.
+   */
+  kTokenMint: Address<TAccountKTokenMint>;
+  /** Kamino reserve for the deposited token. */
+  kaminoReserve: Address<TAccountKaminoReserve>;
+  kaminoLendingMarket: Address<TAccountKaminoLendingMarket>;
+  kaminoLendingMarketAuthority: Address<TAccountKaminoLendingMarketAuthority>;
+  /** Kamino liquidity supply vault (receives the actual tokens). */
+  kaminoLiquiditySupply: Address<TAccountKaminoLiquiditySupply>;
+  kaminoLendingProgram: Address<TAccountKaminoLendingProgram>;
+  instructionSysvar?: Address<TAccountInstructionSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -223,6 +282,14 @@ export async function getInitializeVaultInstructionAsync<
   TAccountOwnerUsdcAta extends string,
   TAccountPlatformWallet extends string,
   TAccountPlatformUsdcAta extends string,
+  TAccountVaultKTokenAta extends string,
+  TAccountKTokenMint extends string,
+  TAccountKaminoReserve extends string,
+  TAccountKaminoLendingMarket extends string,
+  TAccountKaminoLendingMarketAuthority extends string,
+  TAccountKaminoLiquiditySupply extends string,
+  TAccountKaminoLendingProgram extends string,
+  TAccountInstructionSysvar extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
@@ -240,6 +307,14 @@ export async function getInitializeVaultInstructionAsync<
     TAccountOwnerUsdcAta,
     TAccountPlatformWallet,
     TAccountPlatformUsdcAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -259,6 +334,14 @@ export async function getInitializeVaultInstructionAsync<
     TAccountOwnerUsdcAta,
     TAccountPlatformWallet,
     TAccountPlatformUsdcAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -280,6 +363,29 @@ export async function getInitializeVaultInstructionAsync<
     ownerUsdcAta: { value: input.ownerUsdcAta ?? null, isWritable: true },
     platformWallet: { value: input.platformWallet ?? null, isWritable: false },
     platformUsdcAta: { value: input.platformUsdcAta ?? null, isWritable: true },
+    vaultKTokenAta: { value: input.vaultKTokenAta ?? null, isWritable: true },
+    kTokenMint: { value: input.kTokenMint ?? null, isWritable: false },
+    kaminoReserve: { value: input.kaminoReserve ?? null, isWritable: true },
+    kaminoLendingMarket: {
+      value: input.kaminoLendingMarket ?? null,
+      isWritable: false,
+    },
+    kaminoLendingMarketAuthority: {
+      value: input.kaminoLendingMarketAuthority ?? null,
+      isWritable: false,
+    },
+    kaminoLiquiditySupply: {
+      value: input.kaminoLiquiditySupply ?? null,
+      isWritable: true,
+    },
+    kaminoLendingProgram: {
+      value: input.kaminoLendingProgram ?? null,
+      isWritable: false,
+    },
+    instructionSysvar: {
+      value: input.instructionSysvar ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     associatedTokenProgram: {
       value: input.associatedTokenProgram ?? null,
@@ -393,6 +499,27 @@ export async function getInitializeVaultInstructionAsync<
       ],
     });
   }
+  if (!accounts.vaultKTokenAta.value) {
+    accounts.vaultKTokenAta.value = await getProgramDerivedAddress({
+      programAddress:
+        'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL' as Address<'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'>,
+      seeds: [
+        getAddressEncoder().encode(expectAddress(accounts.vault.value)),
+        getBytesEncoder().encode(
+          new Uint8Array([
+            6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235,
+            121, 172, 28, 180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133,
+            126, 255, 0, 169,
+          ])
+        ),
+        getAddressEncoder().encode(expectAddress(accounts.kTokenMint.value)),
+      ],
+    });
+  }
+  if (!accounts.instructionSysvar.value) {
+    accounts.instructionSysvar.value =
+      'Sysvar1nstructions1111111111111111111111111' as Address<'Sysvar1nstructions1111111111111111111111111'>;
+  }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
       'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' as Address<'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'>;
@@ -420,6 +547,14 @@ export async function getInitializeVaultInstructionAsync<
       getAccountMeta(accounts.ownerUsdcAta),
       getAccountMeta(accounts.platformWallet),
       getAccountMeta(accounts.platformUsdcAta),
+      getAccountMeta(accounts.vaultKTokenAta),
+      getAccountMeta(accounts.kTokenMint),
+      getAccountMeta(accounts.kaminoReserve),
+      getAccountMeta(accounts.kaminoLendingMarket),
+      getAccountMeta(accounts.kaminoLendingMarketAuthority),
+      getAccountMeta(accounts.kaminoLiquiditySupply),
+      getAccountMeta(accounts.kaminoLendingProgram),
+      getAccountMeta(accounts.instructionSysvar),
       getAccountMeta(accounts.tokenProgram),
       getAccountMeta(accounts.associatedTokenProgram),
       getAccountMeta(accounts.systemProgram),
@@ -441,6 +576,14 @@ export async function getInitializeVaultInstructionAsync<
     TAccountOwnerUsdcAta,
     TAccountPlatformWallet,
     TAccountPlatformUsdcAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -459,6 +602,14 @@ export type InitializeVaultInput<
   TAccountOwnerUsdcAta extends string = string,
   TAccountPlatformWallet extends string = string,
   TAccountPlatformUsdcAta extends string = string,
+  TAccountVaultKTokenAta extends string = string,
+  TAccountKTokenMint extends string = string,
+  TAccountKaminoReserve extends string = string,
+  TAccountKaminoLendingMarket extends string = string,
+  TAccountKaminoLendingMarketAuthority extends string = string,
+  TAccountKaminoLiquiditySupply extends string = string,
+  TAccountKaminoLendingProgram extends string = string,
+  TAccountInstructionSysvar extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
@@ -466,22 +617,39 @@ export type InitializeVaultInput<
   owner: TransactionSigner<TAccountOwner>;
   nominee: Address<TAccountNominee>;
   ownerProfile: Address<TAccountOwnerProfile>;
-  /** PDA vault state account — created and rent-funded by `owner`. */
+  /** PDA vault state account. */
   vault: Address<TAccountVault>;
-  /** Any valid SPL mint is accepted */
+  /** The SPL token mint being staked (USDC or wSOL on mainnet). */
   mint: Address<TAccountMint>;
-  /** Anchor validates: correct mint + correct owner authority. */
+  /** Owner's token ATA — tokens are pulled from here. */
   ownerAta: Address<TAccountOwnerAta>;
   /**
-   * Vault's Associated Token Account — holds staked tokens for the vault's lifetime.
-   * The vault PDA is the sole authority, so only the program can move tokens out.
-   * `init` (not `init_if_needed`) because the vault PDA is always brand-new here.
+   * Vault's token ATA — holds tokens on devnet; used as staging on mainnet
+   * before the Kamino CPI moves them into the reserve.
    */
   vaultAta: Address<TAccountVaultAta>;
   usdcMint: Address<TAccountUsdcMint>;
   ownerUsdcAta: Address<TAccountOwnerUsdcAta>;
   platformWallet?: Address<TAccountPlatformWallet>;
   platformUsdcAta: Address<TAccountPlatformUsdcAta>;
+  /**
+   * Vault's kToken ATA — receives Kamino receipt tokens on mainnet.
+   * Created here so the ATA exists. On devnet it stays empty.
+   */
+  vaultKTokenAta: Address<TAccountVaultKTokenAta>;
+  /**
+   * Kamino collateral/receipt token mint (kUSDC or kSOL on mainnet).
+   * On devnet: pass `mint` itself as a placeholder.
+   */
+  kTokenMint: Address<TAccountKTokenMint>;
+  /** Kamino reserve for the deposited token. */
+  kaminoReserve: Address<TAccountKaminoReserve>;
+  kaminoLendingMarket: Address<TAccountKaminoLendingMarket>;
+  kaminoLendingMarketAuthority: Address<TAccountKaminoLendingMarketAuthority>;
+  /** Kamino liquidity supply vault (receives the actual tokens). */
+  kaminoLiquiditySupply: Address<TAccountKaminoLiquiditySupply>;
+  kaminoLendingProgram: Address<TAccountKaminoLendingProgram>;
+  instructionSysvar?: Address<TAccountInstructionSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -502,6 +670,14 @@ export function getInitializeVaultInstruction<
   TAccountOwnerUsdcAta extends string,
   TAccountPlatformWallet extends string,
   TAccountPlatformUsdcAta extends string,
+  TAccountVaultKTokenAta extends string,
+  TAccountKTokenMint extends string,
+  TAccountKaminoReserve extends string,
+  TAccountKaminoLendingMarket extends string,
+  TAccountKaminoLendingMarketAuthority extends string,
+  TAccountKaminoLiquiditySupply extends string,
+  TAccountKaminoLendingProgram extends string,
+  TAccountInstructionSysvar extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
@@ -519,6 +695,14 @@ export function getInitializeVaultInstruction<
     TAccountOwnerUsdcAta,
     TAccountPlatformWallet,
     TAccountPlatformUsdcAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -537,6 +721,14 @@ export function getInitializeVaultInstruction<
   TAccountOwnerUsdcAta,
   TAccountPlatformWallet,
   TAccountPlatformUsdcAta,
+  TAccountVaultKTokenAta,
+  TAccountKTokenMint,
+  TAccountKaminoReserve,
+  TAccountKaminoLendingMarket,
+  TAccountKaminoLendingMarketAuthority,
+  TAccountKaminoLiquiditySupply,
+  TAccountKaminoLendingProgram,
+  TAccountInstructionSysvar,
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
   TAccountSystemProgram
@@ -557,6 +749,29 @@ export function getInitializeVaultInstruction<
     ownerUsdcAta: { value: input.ownerUsdcAta ?? null, isWritable: true },
     platformWallet: { value: input.platformWallet ?? null, isWritable: false },
     platformUsdcAta: { value: input.platformUsdcAta ?? null, isWritable: true },
+    vaultKTokenAta: { value: input.vaultKTokenAta ?? null, isWritable: true },
+    kTokenMint: { value: input.kTokenMint ?? null, isWritable: false },
+    kaminoReserve: { value: input.kaminoReserve ?? null, isWritable: true },
+    kaminoLendingMarket: {
+      value: input.kaminoLendingMarket ?? null,
+      isWritable: false,
+    },
+    kaminoLendingMarketAuthority: {
+      value: input.kaminoLendingMarketAuthority ?? null,
+      isWritable: false,
+    },
+    kaminoLiquiditySupply: {
+      value: input.kaminoLiquiditySupply ?? null,
+      isWritable: true,
+    },
+    kaminoLendingProgram: {
+      value: input.kaminoLendingProgram ?? null,
+      isWritable: false,
+    },
+    instructionSysvar: {
+      value: input.instructionSysvar ?? null,
+      isWritable: false,
+    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
     associatedTokenProgram: {
       value: input.associatedTokenProgram ?? null,
@@ -576,6 +791,10 @@ export function getInitializeVaultInstruction<
   if (!accounts.platformWallet.value) {
     accounts.platformWallet.value =
       '99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q' as Address<'99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q'>;
+  }
+  if (!accounts.instructionSysvar.value) {
+    accounts.instructionSysvar.value =
+      'Sysvar1nstructions1111111111111111111111111' as Address<'Sysvar1nstructions1111111111111111111111111'>;
   }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
@@ -604,6 +823,14 @@ export function getInitializeVaultInstruction<
       getAccountMeta(accounts.ownerUsdcAta),
       getAccountMeta(accounts.platformWallet),
       getAccountMeta(accounts.platformUsdcAta),
+      getAccountMeta(accounts.vaultKTokenAta),
+      getAccountMeta(accounts.kTokenMint),
+      getAccountMeta(accounts.kaminoReserve),
+      getAccountMeta(accounts.kaminoLendingMarket),
+      getAccountMeta(accounts.kaminoLendingMarketAuthority),
+      getAccountMeta(accounts.kaminoLiquiditySupply),
+      getAccountMeta(accounts.kaminoLendingProgram),
+      getAccountMeta(accounts.instructionSysvar),
       getAccountMeta(accounts.tokenProgram),
       getAccountMeta(accounts.associatedTokenProgram),
       getAccountMeta(accounts.systemProgram),
@@ -625,6 +852,14 @@ export function getInitializeVaultInstruction<
     TAccountOwnerUsdcAta,
     TAccountPlatformWallet,
     TAccountPlatformUsdcAta,
+    TAccountVaultKTokenAta,
+    TAccountKTokenMint,
+    TAccountKaminoReserve,
+    TAccountKaminoLendingMarket,
+    TAccountKaminoLendingMarketAuthority,
+    TAccountKaminoLiquiditySupply,
+    TAccountKaminoLendingProgram,
+    TAccountInstructionSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram
@@ -640,25 +875,42 @@ export type ParsedInitializeVaultInstruction<
     owner: TAccountMetas[0];
     nominee: TAccountMetas[1];
     ownerProfile: TAccountMetas[2];
-    /** PDA vault state account — created and rent-funded by `owner`. */
+    /** PDA vault state account. */
     vault: TAccountMetas[3];
-    /** Any valid SPL mint is accepted */
+    /** The SPL token mint being staked (USDC or wSOL on mainnet). */
     mint: TAccountMetas[4];
-    /** Anchor validates: correct mint + correct owner authority. */
+    /** Owner's token ATA — tokens are pulled from here. */
     ownerAta: TAccountMetas[5];
     /**
-     * Vault's Associated Token Account — holds staked tokens for the vault's lifetime.
-     * The vault PDA is the sole authority, so only the program can move tokens out.
-     * `init` (not `init_if_needed`) because the vault PDA is always brand-new here.
+     * Vault's token ATA — holds tokens on devnet; used as staging on mainnet
+     * before the Kamino CPI moves them into the reserve.
      */
     vaultAta: TAccountMetas[6];
     usdcMint: TAccountMetas[7];
     ownerUsdcAta: TAccountMetas[8];
     platformWallet: TAccountMetas[9];
     platformUsdcAta: TAccountMetas[10];
-    tokenProgram: TAccountMetas[11];
-    associatedTokenProgram: TAccountMetas[12];
-    systemProgram: TAccountMetas[13];
+    /**
+     * Vault's kToken ATA — receives Kamino receipt tokens on mainnet.
+     * Created here so the ATA exists. On devnet it stays empty.
+     */
+    vaultKTokenAta: TAccountMetas[11];
+    /**
+     * Kamino collateral/receipt token mint (kUSDC or kSOL on mainnet).
+     * On devnet: pass `mint` itself as a placeholder.
+     */
+    kTokenMint: TAccountMetas[12];
+    /** Kamino reserve for the deposited token. */
+    kaminoReserve: TAccountMetas[13];
+    kaminoLendingMarket: TAccountMetas[14];
+    kaminoLendingMarketAuthority: TAccountMetas[15];
+    /** Kamino liquidity supply vault (receives the actual tokens). */
+    kaminoLiquiditySupply: TAccountMetas[16];
+    kaminoLendingProgram: TAccountMetas[17];
+    instructionSysvar: TAccountMetas[18];
+    tokenProgram: TAccountMetas[19];
+    associatedTokenProgram: TAccountMetas[20];
+    systemProgram: TAccountMetas[21];
   };
   data: InitializeVaultInstructionData;
 };
@@ -671,7 +923,7 @@ export function parseInitializeVaultInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>
 ): ParsedInitializeVaultInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 14) {
+  if (instruction.accounts.length < 22) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -695,6 +947,14 @@ export function parseInitializeVaultInstruction<
       ownerUsdcAta: getNextAccount(),
       platformWallet: getNextAccount(),
       platformUsdcAta: getNextAccount(),
+      vaultKTokenAta: getNextAccount(),
+      kTokenMint: getNextAccount(),
+      kaminoReserve: getNextAccount(),
+      kaminoLendingMarket: getNextAccount(),
+      kaminoLendingMarketAuthority: getNextAccount(),
+      kaminoLiquiditySupply: getNextAccount(),
+      kaminoLendingProgram: getNextAccount(),
+      instructionSysvar: getNextAccount(),
       tokenProgram: getNextAccount(),
       associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
