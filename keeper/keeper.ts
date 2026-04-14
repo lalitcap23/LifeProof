@@ -106,7 +106,11 @@ async function scanAndClaim(program: anchor.Program<ProofPol>, keeper: Keypair):
   console.log(`\n${"─".repeat(60)}`);
   console.log(`[${new Date().toISOString()}]  Scanning for claimable vaults...`);
 
-  const allVaults = await program.account.commitmentVault.all();
+  // `getProgramAccounts` only filters by discriminator; devnet still has pre-upgrade
+  // vault PDAs (~146 bytes) whose tail does not match the current layout. Decoding them
+  // with today's IDL hits non-0/1 bytes where `yield_deposited` lives → "Invalid bool".
+  const vaultDataSize = program.coder.accounts.size("commitmentVault");
+  const allVaults = await program.account.commitmentVault.all([{ dataSize: vaultDataSize }]);
   const activeVaults = allVaults.filter((v) => v.account.isActive);
 
   console.log(`Found ${allVaults.length} total | ${activeVaults.length} active`);
