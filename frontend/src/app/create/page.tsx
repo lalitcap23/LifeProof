@@ -15,7 +15,6 @@ import { useProofPol } from "@/hooks/useProofPol";
 import { USDC_MINT } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/error";
 
-// ─── Token options ────────────────────────────────────────────────────────────
 const WSOL_MINT = NATIVE_MINT.toBase58();
 
 const TOKEN_OPTIONS = [
@@ -49,7 +48,6 @@ const INTERVAL_OPTIONS = [
   { label: "Custom", value: 0 },
 ];
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export default function CreateVault() {
   const { publicKey, connected } = useWallet();
   const wallet = useWallet();
@@ -210,15 +208,15 @@ export default function CreateVault() {
 
   if (!connected) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8]">
         <div className="text-center max-w-sm">
-          <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-14 h-14 bg-stone-100 border border-stone-200 rounded-xl flex items-center justify-center mx-auto mb-5">
+            <svg className="w-7 h-7 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-black mb-2">Connect Your Wallet</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-stone-900 mb-2">Connect Your Wallet</h1>
+          <p className="text-sm text-stone-500">
             Please connect your wallet to create a vault
           </p>
         </div>
@@ -230,33 +228,59 @@ export default function CreateVault() {
   const busyLabel = wrapping ? "Wrapping SOL…" : "Creating Vault…";
 
   return (
-    <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#FAFAF8] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
+
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-black tracking-tight">Create Commitment Vault</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-[10px] font-bold text-amber-600 tracking-widest uppercase mb-1">
+            New Vault
+          </p>
+          <h1 className="text-3xl font-bold text-stone-900 tracking-tight">
+            Create Commitment Vault
+          </h1>
+          <p className="text-sm text-stone-500 mt-1">
             Stake tokens and set up a proof-of-life commitment
           </p>
         </div>
 
         {vaults.length > 0 && (
-          <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 flex items-center gap-3">
-            <span className="text-gray-400 text-sm">ℹ</span>
-            <p className="text-sm text-gray-600">
+          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center gap-3">
+            <span className="text-amber-500 text-sm">ℹ</span>
+            <p className="text-sm text-amber-800">
               You already have {vaults.length} vault{vaults.length === 1 ? "" : "s"}.
               Creating a new one will use the next vault ID automatically.
             </p>
           </div>
         )}
 
+        {/* What happens next */}
+        <div className="mb-6 bg-stone-950 border border-stone-800 rounded-xl p-5 font-mono text-xs">
+          <p className="text-[10px] text-stone-500 uppercase tracking-widest mb-3">› what happens on creation</p>
+          <div className="space-y-1.5">
+            {[
+              { step: "1.", text: "vault PDA derived from [\"vault\", owner_pubkey]", color: "text-stone-300" },
+              { step: "2.", text: "tokens transferred to vault_ata (program-controlled)", color: "text-stone-300" },
+              { step: "3.", text: "(mainnet) deposit_reserve_liquidity → Kamino reserve", color: "text-amber-400" },
+              { step: "4.", text: "(mainnet) kTokens minted to vault_ktoken_ata", color: "text-amber-400" },
+              { step: "5.", text: "deadline = now + checkin_interval", color: "text-stone-300" },
+              { step: "6.", text: "is_active = true — clock starts now", color: "text-green-400" },
+            ].map((r) => (
+              <div key={r.step} className="flex gap-3">
+                <span className="text-stone-600 shrink-0">{r.step}</span>
+                <span className={r.color}>{r.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden shadow-sm"
+          className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-sm"
         >
           {/* ── Token Selector ── */}
           <div className="p-6">
-            <label className="block text-sm font-semibold text-black mb-3">
+            <label className="block text-xs font-bold text-stone-900 uppercase tracking-widest mb-3">
               Stake Token
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -272,21 +296,21 @@ export default function CreateVault() {
                     }}
                     className={`relative flex items-center gap-3 px-4 py-4 rounded-xl border-2 transition-all duration-200 text-left ${
                       isActive
-                        ? "border-black bg-gray-50"
-                        : "border-gray-200 bg-white hover:border-gray-400"
+                        ? "border-amber-500 bg-amber-50"
+                        : "border-stone-200 bg-white hover:border-stone-400"
                     }`}
                   >
                     <span className="text-xl">{token.icon}</span>
                     <div>
-                      <div className={`font-semibold text-sm ${isActive ? "text-black" : "text-gray-700"}`}>
+                      <div className={`font-bold text-sm ${isActive ? "text-amber-700" : "text-stone-700"}`}>
                         {token.label}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-stone-400">
                         {token.id === "sol" ? "Native SOL" : "Stablecoin"}
                       </div>
                     </div>
                     {isActive && (
-                      <span className="ml-auto w-5 h-5 rounded-full bg-black flex items-center justify-center">
+                      <span className="ml-auto w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
                         <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
                           <path
                             d="M10 3L5 8.5 2 5.5"
@@ -303,9 +327,9 @@ export default function CreateVault() {
               })}
             </div>
             {selectedToken.id === "sol" && (
-              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 flex items-start gap-2">
-                <span className="text-gray-400 mt-0.5 text-xs">ℹ</span>
-                <p className="text-xs text-gray-500 leading-relaxed">
+              <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 flex items-start gap-2">
+                <span className="text-stone-400 mt-0.5 text-xs">ℹ</span>
+                <p className="text-xs text-stone-500 leading-relaxed">
                   SOL will be wrapped into wSOL before depositing into the vault.
                   Any leftover wSOL is automatically unwrapped after creation.
                 </p>
@@ -315,7 +339,7 @@ export default function CreateVault() {
 
           {/* ── Nominee Address ── */}
           <div className="p-6">
-            <label htmlFor="nominee" className="block text-sm font-semibold text-black mb-2">
+            <label htmlFor="nominee" className="block text-xs font-bold text-stone-900 uppercase tracking-widest mb-2">
               Nominee Address
             </label>
             <input
@@ -328,20 +352,20 @@ export default function CreateVault() {
               }}
               placeholder="Enter nominee's Solana wallet address"
               className={`w-full bg-white border ${
-                nomineeError ? "border-black" : "border-gray-200"
-              } rounded-xl px-4 py-3 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-colors`}
+                nomineeError ? "border-red-300" : "border-stone-200"
+              } rounded-xl px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-colors`}
             />
             {nomineeError && (
-              <p className="mt-1.5 text-xs text-black font-medium">{nomineeError}</p>
+              <p className="mt-1.5 text-xs text-red-500 font-medium">{nomineeError}</p>
             )}
-            <p className="mt-1.5 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-stone-400">
               This address will be able to claim your stake if you miss check-ins
             </p>
           </div>
 
           {/* ── Stake Amount ── */}
           <div className="p-6">
-            <label htmlFor="stakeAmount" className="block text-sm font-semibold text-black mb-2">
+            <label htmlFor="stakeAmount" className="block text-xs font-bold text-stone-900 uppercase tracking-widest mb-2">
               Stake Amount ({selectedToken.label})
             </label>
             <div className="relative">
@@ -353,18 +377,18 @@ export default function CreateVault() {
                 placeholder="0.00"
                 step={selectedToken.step}
                 min={selectedToken.min}
-                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 pr-20 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-colors"
+                className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 pr-20 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-colors"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-stone-400">
                 {selectedToken.label}
               </span>
             </div>
-            <p className="mt-1.5 text-xs text-gray-400">{selectedToken.hint}</p>
+            <p className="mt-1.5 text-xs text-stone-400">{selectedToken.hint}</p>
           </div>
 
           {/* ── Check-in Interval ── */}
           <div className="p-6">
-            <label className="block text-sm font-semibold text-black mb-3">
+            <label className="block text-xs font-bold text-stone-900 uppercase tracking-widest mb-3">
               Check-in Interval
             </label>
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
@@ -373,10 +397,10 @@ export default function CreateVault() {
                   key={option.value}
                   type="button"
                   onClick={() => setSelectedInterval(option.value)}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
                     selectedInterval === option.value
-                      ? "bg-black text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      ? "bg-amber-600 text-white"
+                      : "bg-stone-100 text-stone-600 hover:bg-stone-200"
                   }`}
                 >
                   {option.label}
@@ -391,22 +415,22 @@ export default function CreateVault() {
                   onChange={(e) => setCustomInterval(e.target.value)}
                   placeholder="Enter seconds"
                   min="60"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 pr-24 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  className="w-full bg-white border border-stone-200 rounded-xl px-4 py-3 pr-24 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-stone-400 font-medium">
                   seconds
                 </span>
               </div>
             )}
-            <p className="mt-1.5 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-stone-400">
               How often you need to prove you&apos;re alive to keep your stake
             </p>
           </div>
 
           {/* ── Summary ── */}
           {nominee && stakeAmount && (selectedInterval > 0 || customInterval) && (
-            <div className="p-6 bg-gray-50">
-              <h3 className="text-xs font-semibold text-black uppercase tracking-wider mb-4">
+            <div className="p-6 bg-stone-50">
+              <h3 className="text-[10px] font-bold text-stone-900 uppercase tracking-widest mb-4">
                 Summary
               </h3>
               <div className="space-y-2.5">
@@ -436,9 +460,9 @@ export default function CreateVault() {
                   },
                 ].map((row) => (
                   <div key={row.label} className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">{row.label}</span>
+                    <span className="text-xs text-stone-500">{row.label}</span>
                     <span
-                      className={`text-xs font-medium text-black ${
+                      className={`text-xs font-semibold text-stone-900 ${
                         row.mono ? "font-mono" : ""
                       }`}
                     >
@@ -450,36 +474,36 @@ export default function CreateVault() {
             </div>
           )}
 
-          {/* ── Success Message ── */}
+          {/* ── Success ── */}
           {txSignature && (
-            <div className="p-6 bg-gray-950">
-              <h3 className="text-sm font-semibold text-white mb-2">
+            <div className="p-6 bg-amber-50 border-t border-amber-100">
+              <h3 className="text-sm font-bold text-amber-800 mb-2">
                 ✓ Vault Created Successfully!
               </h3>
               <a
                 href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white text-xs font-mono break-all transition-colors"
+                className="text-amber-600 hover:text-amber-800 text-xs font-mono break-all transition-colors"
               >
                 View transaction: {txSignature.slice(0, 20)}...
               </a>
             </div>
           )}
 
-          {/* ── Error Message ── */}
+          {/* ── Error ── */}
           {error && (
-            <div className="p-6 bg-white border-t border-gray-200">
-              <p className="text-sm text-black">{error}</p>
+            <div className="p-6 bg-white border-t border-red-100">
+              <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
           {/* ── Submit ── */}
-          <div className="p-6">
+          <div className="p-6 space-y-4">
             <button
               type="submit"
               disabled={isBusy || !nominee || !stakeAmount}
-              className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-medium py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+              className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 disabled:text-stone-400 disabled:cursor-not-allowed text-white font-bold py-3.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm tracking-wide"
             >
               {isBusy ? (
                 <>
@@ -509,6 +533,20 @@ export default function CreateVault() {
                 `Create Vault with ${selectedToken.label}`
               )}
             </button>
+            <div className="grid grid-cols-3 gap-3 pt-1">
+              {[
+                { tag: "NON-CUSTODIAL", desc: "Tokens go to vault PDA, not to any team wallet" },
+                { tag: "IMMUTABLE NOMINEE", desc: "Nominee address cannot be changed after creation" },
+                { tag: "48H GRACE", desc: "2-day buffer before anyone can trigger a claim" },
+              ].map((s) => (
+                <div key={s.tag} className="text-center">
+                  <span className="inline-block text-[8px] font-mono font-bold text-amber-600 tracking-widest bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded mb-1">
+                    {s.tag}
+                  </span>
+                  <p className="text-[10px] text-stone-400 leading-tight">{s.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </form>
       </div>

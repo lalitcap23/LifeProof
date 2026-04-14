@@ -51,15 +51,15 @@ export default function Dashboard() {
 
   if (!connected) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8]">
         <div className="text-center max-w-sm">
-          <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-14 h-14 bg-stone-100 border border-stone-200 rounded-xl flex items-center justify-center mx-auto mb-5">
+            <svg className="w-7 h-7 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-black mb-2">Connect Your Wallet</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-stone-900 mb-2">Connect Your Wallet</h1>
+          <p className="text-sm text-stone-500">
             Please connect your wallet to view your dashboard
           </p>
         </div>
@@ -68,17 +68,21 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#FAFAF8] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
+
         {/* Page header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-black tracking-tight">Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage your commitment vaults</p>
+            <p className="text-[10px] font-bold text-amber-600 tracking-widest uppercase mb-1">
+              Your Vaults
+            </p>
+            <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Dashboard</h1>
+            <p className="text-sm text-stone-500 mt-1">Manage your commitment vaults</p>
           </div>
           <Link
             href="/create"
-            className="bg-black hover:bg-gray-800 text-white text-sm font-medium py-2.5 px-5 rounded-lg transition-colors"
+            className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold py-2.5 px-5 rounded-lg transition-colors"
           >
             + New Vault
           </Link>
@@ -86,28 +90,28 @@ export default function Dashboard() {
 
         {/* Toast messages */}
         {actionError && (
-          <div className="mb-5 bg-white border border-gray-900 rounded-xl p-4 flex justify-between items-start gap-4">
+          <div className="mb-5 bg-white border border-red-200 rounded-xl p-4 flex justify-between items-start gap-4">
             <div className="flex gap-3 items-start">
-              <span className="text-black mt-0.5 text-sm">✕</span>
-              <p className="text-sm text-black">{actionError}</p>
+              <span className="text-red-500 mt-0.5 text-sm font-bold">✕</span>
+              <p className="text-sm text-stone-800">{actionError}</p>
             </div>
             <button
               onClick={() => setActionError(null)}
-              className="text-gray-400 hover:text-black text-xs shrink-0"
+              className="text-stone-400 hover:text-stone-700 text-xs shrink-0"
             >
               Dismiss
             </button>
           </div>
         )}
         {successMessage && (
-          <div className="mb-5 bg-gray-950 border border-gray-900 rounded-xl p-4 flex justify-between items-start gap-4">
+          <div className="mb-5 bg-amber-50 border border-amber-200 rounded-xl p-4 flex justify-between items-start gap-4">
             <div className="flex gap-3 items-start">
-              <span className="text-white mt-0.5 text-sm">✓</span>
-              <p className="text-sm text-white">{successMessage}</p>
+              <span className="text-amber-600 mt-0.5 text-sm font-bold">✓</span>
+              <p className="text-sm text-amber-900">{successMessage}</p>
             </div>
             <button
               onClick={() => setSuccessMessage(null)}
-              className="text-gray-400 hover:text-white text-xs shrink-0"
+              className="text-amber-400 hover:text-amber-700 text-xs shrink-0"
             >
               Dismiss
             </button>
@@ -118,13 +122,13 @@ export default function Dashboard() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <div className="flex flex-col items-center gap-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-black" />
-              <p className="text-sm text-gray-400">Loading vaults…</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-stone-200 border-t-amber-600" />
+              <p className="text-sm text-stone-400">Loading vaults…</p>
             </div>
           </div>
         ) : error ? (
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 text-center">
-            <p className="text-sm text-gray-600">{error}</p>
+          <div className="bg-white border border-stone-200 rounded-xl p-6 text-center">
+            <p className="text-sm text-stone-600">{error}</p>
           </div>
         ) : vaults.length > 0 ? (
           <div className="space-y-4">
@@ -171,10 +175,10 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-2xl p-12 text-center border border-dashed border-gray-200">
-            <div className="w-14 h-14 bg-white border border-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-5">
+          <div className="bg-white rounded-xl p-14 text-center border border-dashed border-stone-200">
+            <div className="w-14 h-14 bg-stone-50 border border-stone-200 rounded-xl flex items-center justify-center mx-auto mb-5">
               <svg
-                className="w-7 h-7 text-gray-300"
+                className="w-7 h-7 text-stone-300"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -187,13 +191,13 @@ export default function Dashboard() {
                 />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-black mb-1">No Vaults Found</h2>
-            <p className="text-sm text-gray-400 mb-6">
+            <h2 className="text-lg font-bold text-stone-900 mb-1">No Vaults Found</h2>
+            <p className="text-sm text-stone-400 mb-6">
               You haven&apos;t created a commitment vault yet.
             </p>
             <Link
               href="/create"
-              className="inline-block bg-black hover:bg-gray-800 text-white text-sm font-medium py-2.5 px-6 rounded-lg transition-colors"
+              className="inline-block bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold py-2.5 px-6 rounded-lg transition-colors"
             >
               Create Your First Vault
             </Link>
@@ -205,14 +209,9 @@ export default function Dashboard() {
           <button
             onClick={refetch}
             disabled={loading || activeVaultAddress !== null}
-            className="text-gray-400 hover:text-black disabled:opacity-30 text-sm flex items-center gap-2 transition-colors"
+            className="text-stone-400 hover:text-stone-700 disabled:opacity-30 text-sm flex items-center gap-2 transition-colors"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -222,6 +221,38 @@ export default function Dashboard() {
             </svg>
             Refresh
           </button>
+        </div>
+
+        {/* Protocol info */}
+        <div className="mt-16 border-t border-stone-200 pt-10">
+          <p className="text-[10px] font-bold text-stone-400 tracking-widest uppercase mb-5">Protocol Reference</p>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {[
+              {
+                tag: "CHECKIN",
+                title: "Proof of Life",
+                desc: "Sign `proof_of_life` before your deadline to roll it forward. On mainnet your Kamino yield continues to compound.",
+              },
+              {
+                tag: "GRACE PERIOD",
+                title: "48h Buffer",
+                desc: "After a missed deadline, a 48-hour grace window gives you one last chance before the vault becomes claimable by anyone.",
+              },
+              {
+                tag: "KAMINO",
+                title: "Yield on Mainnet",
+                desc: "Deposited tokens are routed into Kamino reserves and represented as kTokens in your vault. Yield redeems automatically on claim or close.",
+              },
+            ].map((item) => (
+              <div key={item.title} className="bg-white border border-stone-200 rounded-xl p-5">
+                <span className="inline-block text-[9px] font-mono font-bold text-amber-600 tracking-widest bg-amber-50 border border-amber-100 px-2 py-0.5 rounded mb-3">
+                  {item.tag}
+                </span>
+                <p className="text-xs font-bold text-stone-900 mb-1.5">{item.title}</p>
+                <p className="text-xs text-stone-500 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -24,11 +24,9 @@ function formatStakeAmount(stakeAmount: bigint, mint: string) {
   if (mint === NATIVE_MINT.toBase58()) {
     return `${(Number(stakeAmount) / 1e9).toFixed(4)} SOL`;
   }
-
   if (mint === USDC_MINT) {
     return `${(Number(stakeAmount) / 1e6).toFixed(2)} USDC`;
   }
-
   return `${stakeAmount.toString()} units`;
 }
 
@@ -64,56 +62,53 @@ export const VaultCard: FC<VaultCardProps> = ({
   const timeRemaining = formatTimeRemaining(deadline, now);
 
   const statusLabel = isActive ? (isExpired ? "Claimable" : "Active") : "Closed";
+
   const statusClasses = isActive
     ? isExpired
-      ? "bg-black text-white"
-      : "bg-gray-100 text-gray-700 border border-gray-200"
-    : "bg-gray-100 text-gray-400 border border-gray-100";
+      ? "bg-amber-600 text-white"
+      : "bg-stone-100 text-stone-700 border border-stone-200"
+    : "bg-stone-100 text-stone-400 border border-stone-100";
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-black hover:shadow-md transition-all duration-200">
+    <div className="bg-white rounded-xl p-6 border border-stone-200 hover:border-amber-300 hover:shadow-md transition-all duration-200">
       {/* Header */}
       <div className="flex justify-between items-start mb-5 gap-4">
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-widest text-gray-400 font-medium">
+          <p className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">
             Vault #{vaultId.toString()}
           </p>
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClasses}`}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusClasses}`}
           >
             {statusLabel}
           </span>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold text-black">
+          <p className="text-2xl font-bold text-stone-900">
             {formatStakeAmount(stakeAmount, mint)}
           </p>
-          <p className="text-xs text-gray-400 font-mono truncate max-w-40 mt-0.5">
-            {mint}
+          <p className="text-[10px] text-stone-400 font-mono truncate max-w-40 mt-0.5">
+            {mint.slice(0, 8)}...{mint.slice(-6)}
           </p>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="border-t border-gray-100 mb-5" />
+      <div className="border-t border-stone-100 mb-5" />
 
       {/* Details */}
       <div className="space-y-3 mb-5">
         <div className="flex justify-between items-center">
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Owner</p>
-          <p className="text-xs text-gray-700 font-mono truncate max-w-48">{owner}</p>
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-semibold">Owner</p>
+          <p className="text-xs text-stone-600 font-mono truncate max-w-48">{owner}</p>
         </div>
         <div className="flex justify-between items-center">
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Nominee</p>
-          <p className="text-xs text-gray-700 font-mono truncate max-w-48">{nominee}</p>
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-semibold">Nominee</p>
+          <p className="text-xs text-stone-600 font-mono truncate max-w-48">{nominee}</p>
         </div>
         <div className="flex justify-between items-center">
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">Deadline</p>
-          <p
-            className={`text-sm font-semibold ${
-              isExpired ? "text-black" : "text-gray-700"
-            }`}
-          >
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest font-semibold">Deadline</p>
+          <p className={`text-sm font-bold ${isExpired ? "text-amber-600" : "text-stone-700"}`}>
             {isExpired ? "⚠ " : ""}{timeRemaining}
           </p>
         </div>
@@ -126,7 +121,7 @@ export const VaultCard: FC<VaultCardProps> = ({
             <button
               onClick={onProofOfLife}
               disabled={loading}
-              className="flex-1 bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors"
+              className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 disabled:text-stone-400 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-colors"
             >
               {loading ? "Processing…" : "Proof of Life"}
             </button>
@@ -135,7 +130,7 @@ export const VaultCard: FC<VaultCardProps> = ({
             <button
               onClick={onClose}
               disabled={loading}
-              className="flex-1 bg-white hover:bg-gray-50 disabled:bg-gray-50 disabled:cursor-not-allowed text-black text-sm font-medium py-2.5 px-4 rounded-lg transition-colors border border-gray-200 hover:border-gray-400"
+              className="flex-1 bg-white hover:bg-stone-50 disabled:bg-stone-50 disabled:cursor-not-allowed text-stone-700 text-sm font-medium py-2.5 px-4 rounded-lg transition-colors border border-stone-200 hover:border-stone-400"
             >
               {loading ? "Processing…" : "Close Vault"}
             </button>
@@ -144,7 +139,7 @@ export const VaultCard: FC<VaultCardProps> = ({
             <button
               onClick={onClaim}
               disabled={loading}
-              className="flex-1 bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors"
+              className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 disabled:text-stone-400 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-colors"
             >
               {loading ? "Processing…" : "Claim Stake"}
             </button>

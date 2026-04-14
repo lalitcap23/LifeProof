@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  --background: #FAFAF8;
+  --foreground: #1C1917;
 }
 
 @theme inline {
@@ -18,50 +18,51 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Wallet adapter button overrides */
+/* Wallet adapter overrides */
 .wallet-adapter-button {
-  background-color: #0a0a0a !important;
+  background-color: #d97706 !important;
   color: #ffffff !important;
   border-radius: 8px !important;
   font-weight: 500 !important;
+  font-size: 13px !important;
 }
 
 .wallet-adapter-button:hover {
-  background-color: #333333 !important;
+  background-color: #b45309 !important;
 }
 
 .wallet-adapter-button:not([disabled]):hover {
-  background-color: #333333 !important;
+  background-color: #b45309 !important;
 }
 
 .wallet-adapter-modal-wrapper {
-  background-color: rgba(0, 0, 0, 0.6) !important;
+  background-color: rgba(12, 10, 9, 0.7) !important;
 }
 
 .wallet-adapter-modal-container {
-  background-color: #ffffff !important;
-  border: 1px solid #e5e5e5 !important;
+  background-color: #fafaf8 !important;
+  border: 1px solid #e7e5e4 !important;
   border-radius: 16px !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12) !important;
 }
 
 .wallet-adapter-modal-title {
-  color: #0a0a0a !important;
+  color: #1c1917 !important;
 }
 
 .wallet-adapter-modal-list li {
-  background-color: #f5f5f5 !important;
+  background-color: #f5f5f4 !important;
   border-radius: 8px !important;
 }
 
 .wallet-adapter-modal-list li:hover {
-  background-color: #ebebeb !important;
+  background-color: #fef3c7 !important;
 }
 
 .wallet-adapter-modal-list-more {
-  color: #0a0a0a !important;
+  color: #d97706 !important;
 }
 
 .wallet-adapter-collapse-btn {
-  color: #0a0a0a !important;
+  color: #1c1917 !important;
 }
