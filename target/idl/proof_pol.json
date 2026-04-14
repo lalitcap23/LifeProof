@@ -1,0 +1,1653 @@
+{
+  "address": "DHHHbFFGWX2y4HkgdePB61bUZxdJQw8VmfGvgR4cxeof",
+  "metadata": {
+    "name": "proof_pol",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "claim_vault",
+      "docs": [
+        "Anyone may execute claim after a missed deadline + grace period.",
+        "Funds are always transferred to the stored nominee."
+      ],
+      "discriminator": [
+        87,
+        111,
+        176,
+        185,
+        53,
+        172,
+        227,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "executor",
+          "docs": [
+            "Permissionless keeper"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "nominee",
+          "docs": [
+            "Must be `mut` — receives lamports from:",
+            "1. `close = nominee` on the vault PDA account",
+            "2. `close_account { destination: nominee }` on vault_ata"
+          ],
+          "writable": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "owner",
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "CommitmentVault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "nominee_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "nominee"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_k_token_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "k_token_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "k_token_mint"
+        },
+        {
+          "name": "kamino_reserve"
+        },
+        {
+          "name": "kamino_lending_market"
+        },
+        {
+          "name": "kamino_lending_market_authority"
+        },
+        {
+          "name": "kamino_liquidity_supply",
+          "writable": true
+        },
+        {
+          "name": "kamino_lending_program"
+        },
+        {
+          "name": "instruction_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_vault",
+      "discriminator": [
+        141,
+        103,
+        17,
+        126,
+        72,
+        75,
+        29,
+        29
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "CommitmentVault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "owner_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_k_token_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "k_token_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "k_token_mint"
+        },
+        {
+          "name": "kamino_reserve"
+        },
+        {
+          "name": "kamino_lending_market"
+        },
+        {
+          "name": "kamino_lending_market_authority"
+        },
+        {
+          "name": "kamino_liquidity_supply",
+          "writable": true
+        },
+        {
+          "name": "kamino_lending_program"
+        },
+        {
+          "name": "instruction_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_vault",
+      "discriminator": [
+        48,
+        191,
+        163,
+        44,
+        71,
+        129,
+        63,
+        164
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "nominee"
+        },
+        {
+          "name": "owner_profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  119,
+                  110,
+                  101,
+                  114,
+                  95,
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "vault_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "owner_ata",
+          "docs": [
+            "Owner's token ATA tokens are pulled from here"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_ata",
+          "docs": [
+            "Vault's token ATA — holds tokens on devnet; used as staging on mainnet",
+            "before the Kamino CPI moves them into the reserve."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "owner_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "platform_wallet",
+          "address": "99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q"
+        },
+        {
+          "name": "platform_usdc_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "platform_wallet"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault_k_token_ata",
+          "docs": [
+            "Vault's kToken ATA — receives Kamino receipt tokens on mainnet.",
+            "Created here so the ATA exists. On devnet it stays empty"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "k_token_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "k_token_mint",
+          "docs": [
+            "Kamino collateral/receipt token mint (kUSDC or kSOL on mainnet).",
+            "On devnet: pass `mint` itself as a placeholder."
+          ]
+        },
+        {
+          "name": "kamino_reserve",
+          "docs": [
+            "Kamino reserve for the deposited token."
+          ]
+        },
+        {
+          "name": "kamino_lending_market"
+        },
+        {
+          "name": "kamino_lending_market_authority"
+        },
+        {
+          "name": "kamino_liquidity_supply",
+          "docs": [
+            "Kamino liquidity supply vault (receives the actual tokens)."
+          ],
+          "writable": true
+        },
+        {
+          "name": "kamino_lending_program"
+        },
+        {
+          "name": "instruction_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "vault_id",
+          "type": "u64"
+        },
+        {
+          "name": "stake_amount",
+          "type": "u64"
+        },
+        {
+          "name": "checkin_interval",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "proof_of_life",
+      "discriminator": [
+        52,
+        157,
+        123,
+        29,
+        44,
+        147,
+        143,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "docs": [
+            "The vault owner must sign to prove they are alive"
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "vault"
+          ]
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "account",
+                "path": "vault.vault_id",
+                "account": "CommitmentVault"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "CommitmentVault",
+      "discriminator": [
+        14,
+        195,
+        87,
+        111,
+        213,
+        201,
+        5,
+        129
+      ]
+    },
+    {
+      "name": "OwnerProfile",
+      "discriminator": [
+        51,
+        38,
+        236,
+        107,
+        38,
+        26,
+        62,
+        91
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "VaultAlreadyExists",
+      "msg": "A commitment vault already exists for this owner."
+    },
+    {
+      "code": 6001,
+      "name": "VaultInactive",
+      "msg": "The commitment vault is no longer active."
+    },
+    {
+      "code": 6002,
+      "name": "VaultEmpty",
+      "msg": "The vault token account is empty; no tokens to transfer."
+    },
+    {
+      "code": 6003,
+      "name": "StakeTooLow",
+      "msg": "Stake amount is below the minimum required (10_000_000 raw token units)."
+    },
+    {
+      "code": 6004,
+      "name": "IntervalTooShort",
+      "msg": "Check-in interval is too short (minimum: 1 hour)."
+    },
+    {
+      "code": 6005,
+      "name": "IntervalTooLong",
+      "msg": "Check-in interval is too long (maximum: 30 days)."
+    },
+    {
+      "code": 6006,
+      "name": "DeadlineNotPassed",
+      "msg": "The deadline has not passed; the owner is still in time."
+    },
+    {
+      "code": 6007,
+      "name": "ClaimGracePeriodNotPassed",
+      "msg": "The claim grace period has not elapsed yet."
+    },
+    {
+      "code": 6008,
+      "name": "DeadlineAlreadyPassed",
+      "msg": "The deadline has already passed; proof-of-life is no longer accepted."
+    },
+    {
+      "code": 6009,
+      "name": "NotNominee",
+      "msg": "Only the nominated accountability wallet may perform this action."
+    },
+    {
+      "code": 6010,
+      "name": "NotOwner",
+      "msg": "Only the vault owner may perform this action."
+    },
+    {
+      "code": 6011,
+      "name": "SelfNominee",
+      "msg": "The owner and nominee cannot be the same wallet."
+    },
+    {
+      "code": 6012,
+      "name": "NomineeAtaMintMismatch",
+      "msg": "Nominee token account mint does not match the vault mint."
+    },
+    {
+      "code": 6013,
+      "name": "NomineeAtaOwnerMismatch",
+      "msg": "Nominee token account is not owned by the nominee wallet."
+    },
+    {
+      "code": 6014,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow when computing deadline timestamp."
+    },
+    {
+      "code": 6015,
+      "name": "InvalidKaminoProgram",
+      "msg": "Invalid Kamino lending program — address mismatch."
+    }
+  ],
+  "types": [
+    {
+      "name": "CommitmentVault",
+      "docs": [
+        "Layout (approximate byte budget):",
+        "discriminator    8",
+        "owner           32",
+        "nominee         32",
+        "mint            32  ← SPL token mint being staked",
+        "stake_amount     8  (raw token units – informational snapshot)",
+        "checkin_interval 8  (seconds between required check-ins)",
+        "last_checkin     8  (Unix timestamp of last proof-of-life tx)",
+        "deadline         8  (Unix timestamp after which nominee can claim)",
+        "is_active        1  (vault is live; false after close or claim)",
+        "yield_deposited  1  (true = tokens are in Kamino; false = held in vault ATA)",
+        "k_token_mint    32  (Kamino collateral/receipt token mint, or default on devnet)",
+        "k_token_amount   8  (kTokens held; 0 on devnet)",
+        "bump             1",
+        "_padding         5",
+        "Total ≈ 185 bytes (auto-calculated via INIT_SPACE)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "nominee",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "Used to validate the correct token accounts are passed on claim/close."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_amount",
+            "docs": [
+              "Actual tokens live in the vault's Associated Token Account (ATA)",
+              "on devnet, or inside Kamino on mainnet."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "checkin_interval",
+            "type": "u64"
+          },
+          {
+            "name": "last_checkin",
+            "type": "i64"
+          },
+          {
+            "name": "deadline",
+            "docs": [
+              "Unix timestamp after which the nominee may claim.",
+              "Recalculated as `last_checkin + checkin_interval` on every proof-of-life."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "yield_deposited",
+            "docs": [
+              "True when tokens have been deposited into Kamino (mainnet only).",
+              "False on devnet — tokens remain in vault_ata."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "k_token_mint",
+            "docs": [
+              "Kamino collateral (kToken) mint received after deposit.",
+              "Pubkey::default() on devnet."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "k_token_amount",
+            "docs": [
+              "Number of kTokens held in the vault's kToken ATA.",
+              "0 on devnet."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OwnerProfile",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}
