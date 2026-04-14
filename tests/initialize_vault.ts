@@ -21,7 +21,6 @@ describe("initialize vault", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-
   const program = anchor.workspace.ProofPol as Program<ProofPol>;
 
   const wallet = provider.wallet as anchor.Wallet;
@@ -74,7 +73,9 @@ describe("initialize vault", () => {
     );
 
     // Create Platform Wallet
-    const platformWallet = new anchor.web3.PublicKey("99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q");
+    const platformWallet = new anchor.web3.PublicKey(
+      "99xMByFHuyHspBCeygNAMya9jixwb2RsMsM4AQKefn2q"
+    );
 
     // Create USDC mint
     let usdcMint = await createMint(
@@ -114,9 +115,8 @@ describe("initialize vault", () => {
 
     // 4. Derive vault PDA
     [vaultPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("vault"),
-     wallet.publicKey.toBuffer()],
-     program.programId
+      [Buffer.from("vault"), wallet.publicKey.toBuffer()],
+      program.programId
     );
 
     // 5. Derive vault ATA address
@@ -142,10 +142,7 @@ describe("initialize vault", () => {
     console.log("Vault:", vaultAccount);
 
     // 8. Check token balance moved
-    const vaultToken = await getAccount(
-      provider.connection,
-      vaultAtaAddress
-    );
+    const vaultToken = await getAccount(provider.connection, vaultAtaAddress);
 
     console.log("Vault token balance:", Number(vaultToken.amount));
 

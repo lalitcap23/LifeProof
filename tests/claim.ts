@@ -336,7 +336,7 @@ describe("claim vault (bankrun time-travel)", () => {
     );
   }
 
-  // ─── Bankrun-compatible token helpers ────────────────────────────────────
+  //  Bankrun-compatible token helpers 
 
   /** Create an SPL mint and return its public key. */
   async function bkCreateMint(
@@ -358,7 +358,12 @@ describe("claim vault (bankrun time-travel)", () => {
         lamports,
         programId: TOKEN_PROGRAM_ID,
       }),
-      createInitializeMintInstruction(mintKp.publicKey, decimals, mintAuthority, null)
+      createInitializeMintInstruction(
+        mintKp.publicKey,
+        decimals,
+        mintAuthority,
+        null
+      )
     );
     tx.sign(payer, mintKp);
     await client.processTransaction(tx);
@@ -375,7 +380,12 @@ describe("claim vault (bankrun time-travel)", () => {
     tx.recentBlockhash = context.lastBlockhash;
     tx.feePayer = payer.publicKey;
     tx.add(
-      createAssociatedTokenAccountInstruction(payer.publicKey, ata, owner, mintPub)
+      createAssociatedTokenAccountInstruction(
+        payer.publicKey,
+        ata,
+        owner,
+        mintPub
+      )
     );
     tx.sign(payer);
     await client.processTransaction(tx);
@@ -392,13 +402,18 @@ describe("claim vault (bankrun time-travel)", () => {
     const tx = new Transaction();
     tx.recentBlockhash = context.lastBlockhash;
     tx.feePayer = payer.publicKey;
-    tx.add(createMintToInstruction(mintPub, destination, authority.publicKey, amount));
+    tx.add(
+      createMintToInstruction(mintPub, destination, authority.publicKey, amount)
+    );
     tx.sign(payer, authority);
     await client.processTransaction(tx);
   }
 
   /** Fund an account with SOL via transfer. */
-  async function fundAccount(target: PublicKey, lamports: number): Promise<void> {
+  async function fundAccount(
+    target: PublicKey,
+    lamports: number
+  ): Promise<void> {
     const tx = new Transaction();
     tx.recentBlockhash = context.lastBlockhash;
     tx.feePayer = payer.publicKey;
@@ -413,7 +428,7 @@ describe("claim vault (bankrun time-travel)", () => {
     await client.processTransaction(tx);
   }
 
-  // ─── Global setup ───────────────────────────────────────────────────────
+  //  Global setup 
   before(async () => {
     // Boot bankrun
     context = await startAnchor("./", [], []);
@@ -470,12 +485,14 @@ describe("claim vault (bankrun time-travel)", () => {
 
     const result = await sendInstruction(ix);
     if (result.result) {
-      throw new Error(`initVaultBankrun failed: ${JSON.stringify(result.result)}`);
+      throw new Error(
+        `initVaultBankrun failed: ${JSON.stringify(result.result)}`
+      );
     }
   }
 
   // TEST: Claim fails before deadline
-  
+
   describe("before deadline passes", () => {
     let txResult: BanksTransactionResultWithMeta;
 
@@ -484,7 +501,9 @@ describe("claim vault (bankrun time-travel)", () => {
       await initVaultBankrun(ONE_HOUR);
 
       // Read the deadline
-      const vaultAccount = await program.account.commitmentVault.fetch(vaultPda);
+      const vaultAccount = await program.account.commitmentVault.fetch(
+        vaultPda
+      );
       const deadlineTs = BigInt(vaultAccount.deadline.toNumber());
 
       // Stay 60 seconds BEFORE the deadline
@@ -505,7 +524,9 @@ describe("claim vault (bankrun time-travel)", () => {
 
     after(async () => {
       // Clean up - close vault before next test
-      const vaultAccount = await program.account.commitmentVault.fetch(vaultPda);
+      const vaultAccount = await program.account.commitmentVault.fetch(
+        vaultPda
+      );
       const deadlineTs = BigInt(vaultAccount.deadline.toNumber());
       await warpTimeTo(deadlineTs - 60n);
 
@@ -540,12 +561,17 @@ describe("claim vault (bankrun time-travel)", () => {
       await initVaultBankrun(ONE_HOUR);
 
       // Read the vault state before claim
-      vaultAccountBefore = await program.account.commitmentVault.fetch(vaultPda);
+      vaultAccountBefore = await program.account.commitmentVault.fetch(
+        vaultPda
+      );
       const deadlineTs = BigInt(vaultAccountBefore.deadline.toNumber());
 
       console.log("Vault before claim:");
       console.log("  Stake amount:", vaultAccountBefore.stakeAmount.toNumber());
-      console.log("  Deadline:", new Date(Number(deadlineTs) * 1000).toISOString());
+      console.log(
+        "  Deadline:",
+        new Date(Number(deadlineTs) * 1000).toISOString()
+      );
       console.log("  Is active:", vaultAccountBefore.isActive);
 
       // Warp 1 second PAST the deadline
@@ -575,7 +601,10 @@ describe("claim vault (bankrun time-travel)", () => {
     it("logs should contain claim_vault message", () => {
       const logs = txResult.meta?.logMessages ?? [];
       const claimLog = logs.find((l) => l.includes("claim_vault"));
-      assert.exists(claimLog, `Expected 'claim_vault' in logs. Got:\n${logs.join("\n")}`);
+      assert.exists(
+        claimLog,
+        `Expected 'claim_vault' in logs. Got:\n${logs.join("\n")}`
+      );
       console.log("Claim log:", claimLog);
     });
 
@@ -598,7 +627,8 @@ describe("claim vault (bankrun time-travel)", () => {
         // Account not found is expected - vault was closed
         const errStr = err.toString();
         assert.ok(
-          errStr.includes("Could not find") || errStr.includes("Account does not exist"),
+          errStr.includes("Could not find") ||
+            errStr.includes("Account does not exist"),
           `Unexpected error: ${errStr}`
         );
       }
@@ -618,7 +648,11 @@ describe("claim vault (bankrun time-travel)", () => {
     it("last log line should say 'success'", () => {
       const logs = txResult.meta?.logMessages ?? [];
       const last = logs[logs.length - 1] ?? "";
-      assert.include(last, "success", `Expected last log to include 'success', got: ${last}`);
+      assert.include(
+        last,
+        "success",
+        `Expected last log to include 'success', got: ${last}`
+      );
     });
   });
 
@@ -636,7 +670,9 @@ describe("claim vault (bankrun time-travel)", () => {
       await fundAccount(fakeNominee.publicKey, LAMPORTS_PER_SOL);
 
       // Read the deadline and warp past it
-      const vaultAccount = await program.account.commitmentVault.fetch(vaultPda);
+      const vaultAccount = await program.account.commitmentVault.fetch(
+        vaultPda
+      );
       const deadlineTs = BigInt(vaultAccount.deadline.toNumber());
       await warpTimeTo(deadlineTs + 1n);
 
@@ -655,7 +691,9 @@ describe("claim vault (bankrun time-travel)", () => {
 
     after(async () => {
       // Clean up
-      const vaultAccount = await program.account.commitmentVault.fetch(vaultPda);
+      const vaultAccount = await program.account.commitmentVault.fetch(
+        vaultPda
+      );
       const deadlineTs = BigInt(vaultAccount.deadline.toNumber());
       await warpTimeTo(deadlineTs - 60n);
 
@@ -667,7 +705,10 @@ describe("claim vault (bankrun time-travel)", () => {
     });
 
     it("transaction should fail", () => {
-      assert.isNotNull(txResult.result, "Expected transaction to fail for non-nominee");
+      assert.isNotNull(
+        txResult.result,
+        "Expected transaction to fail for non-nominee"
+      );
     });
 
     it("should contain NotNominee error in logs", () => {

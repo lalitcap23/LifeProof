@@ -174,7 +174,10 @@ describe("proof_of_life (simple tests)", () => {
     const lastCheckinBefore = vaultBefore.lastCheckin.toNumber();
 
     console.log("Before proof_of_life:");
-    console.log("  Last checkin:", new Date(lastCheckinBefore * 1000).toISOString());
+    console.log(
+      "  Last checkin:",
+      new Date(lastCheckinBefore * 1000).toISOString()
+    );
     console.log("  Deadline:", new Date(deadlineBefore * 1000).toISOString());
 
     // Wait a bit so timestamps are different
@@ -195,7 +198,10 @@ describe("proof_of_life (simple tests)", () => {
     const lastCheckinAfter = vaultAfter.lastCheckin.toNumber();
 
     console.log("After proof_of_life:");
-    console.log("  Last checkin:", new Date(lastCheckinAfter * 1000).toISOString());
+    console.log(
+      "  Last checkin:",
+      new Date(lastCheckinAfter * 1000).toISOString()
+    );
     console.log("  Deadline:", new Date(deadlineAfter * 1000).toISOString());
 
     // Verify last_checkin was updated
@@ -334,7 +340,12 @@ describe("proof_of_life (bankrun time-travel)", () => {
         lamports,
         programId: TOKEN_PROGRAM_ID,
       }),
-      createInitializeMintInstruction(mintKp.publicKey, decimals, mintAuthority, null)
+      createInitializeMintInstruction(
+        mintKp.publicKey,
+        decimals,
+        mintAuthority,
+        null
+      )
     );
     tx.sign(payer, mintKp);
     await client.processTransaction(tx);
@@ -351,7 +362,12 @@ describe("proof_of_life (bankrun time-travel)", () => {
     tx.recentBlockhash = context.lastBlockhash;
     tx.feePayer = payer.publicKey;
     tx.add(
-      createAssociatedTokenAccountInstruction(payer.publicKey, ata, owner, mintPub)
+      createAssociatedTokenAccountInstruction(
+        payer.publicKey,
+        ata,
+        owner,
+        mintPub
+      )
     );
     tx.sign(payer);
     await client.processTransaction(tx);
@@ -368,13 +384,18 @@ describe("proof_of_life (bankrun time-travel)", () => {
     const tx = new Transaction();
     tx.recentBlockhash = context.lastBlockhash;
     tx.feePayer = payer.publicKey;
-    tx.add(createMintToInstruction(mintPub, destination, authority.publicKey, amount));
+    tx.add(
+      createMintToInstruction(mintPub, destination, authority.publicKey, amount)
+    );
     tx.sign(payer, authority);
     await client.processTransaction(tx);
   }
 
   /** Fund an account with SOL via transfer. */
-  async function fundAccount(target: PublicKey, lamports: number): Promise<void> {
+  async function fundAccount(
+    target: PublicKey,
+    lamports: number
+  ): Promise<void> {
     const tx = new Transaction();
     tx.recentBlockhash = context.lastBlockhash;
     tx.feePayer = payer.publicKey;
@@ -441,7 +462,9 @@ describe("proof_of_life (bankrun time-travel)", () => {
 
     const result = await sendInstruction(ix);
     if (result.result) {
-      throw new Error(`initVaultBankrun failed: ${JSON.stringify(result.result)}`);
+      throw new Error(
+        `initVaultBankrun failed: ${JSON.stringify(result.result)}`
+      );
     }
   }
 
@@ -545,10 +568,15 @@ describe("proof_of_life (bankrun time-travel)", () => {
       await initVaultBankrun(ONE_HOUR);
 
       // Read deadline
-      const vaultAccount = await program.account.commitmentVault.fetch(vaultPda);
+      const vaultAccount = await program.account.commitmentVault.fetch(
+        vaultPda
+      );
       const deadlineTs = BigInt(vaultAccount.deadline.toNumber());
 
-      console.log("Deadline:", new Date(Number(deadlineTs) * 1000).toISOString());
+      console.log(
+        "Deadline:",
+        new Date(Number(deadlineTs) * 1000).toISOString()
+      );
 
       // Warp PAST the deadline
       await warpTimeTo(deadlineTs + 1n);
@@ -568,7 +596,9 @@ describe("proof_of_life (bankrun time-travel)", () => {
 
     after(async () => {
       // Reset time before deadline to close vault
-      const vaultAccount = await program.account.commitmentVault.fetch(vaultPda);
+      const vaultAccount = await program.account.commitmentVault.fetch(
+        vaultPda
+      );
       const deadlineTs = BigInt(vaultAccount.deadline.toNumber());
       await warpTimeTo(deadlineTs - 60n);
       await closeVaultBankrun();
@@ -597,7 +627,9 @@ describe("proof_of_life (bankrun time-travel)", () => {
       // Initialize vault
       await initVaultBankrun(ONE_HOUR);
 
-      const vaultInitial = await program.account.commitmentVault.fetch(vaultPda);
+      const vaultInitial = await program.account.commitmentVault.fetch(
+        vaultPda
+      );
       const initialDeadline = BigInt(vaultInitial.deadline.toNumber());
 
       // Warp 30 mins into the interval

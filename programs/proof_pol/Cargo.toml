@@ -10,6 +10,9 @@ name = "proof_pol"
 
 [features]
 default = []
+# Build with `anchor build -- --features mainnet` to activate Kamino yield CPI.
+# On devnet (default) the flag is absent and tokens sit in the vault ATA.
+mainnet = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
@@ -21,8 +24,12 @@ custom-panic = []
 init-if-needed = []
 
 [dependencies]
-anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
-anchor-spl  = { version = "0.32.1", features = ["token", "associated_token"] }
+anchor-lang    = { version = "0.32.1", features = ["init-if-needed"] }
+anchor-spl     = { version = "0.32.1", features = ["token", "associated_token"] }
+# Kamino lending CPI interface — only the CPI feature is needed (no entrypoint).
+# Used in initialize_vault (deposit) and claim/close (redeem) under #[cfg(feature="mainnet")].
+# kamino_lending added via raw CPI (AccountInfo + instruction data) to avoid
+# solana-program version conflicts. No git dep needed — see kamino_cpi.rs.
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))', 'cfg(feature, values("mainnet"))'] }

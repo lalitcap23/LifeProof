@@ -1,0 +1,82 @@
+
+
+name: Keeper Bot — Claim Expired Vaults
+
+on:
+
+  schedule:
+    - cron: "0 0 */2 * *"
+
+
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why are you triggering manually?"
+        required: false
+        default: "manual check"
+
+jobs:
+  claim-expired-vaults:
+    name: Scan and Claim Expired Vaults
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      #  Set up Node.js ──
+      # WHY: ts-node needs Node.js 18+ to run TypeScript directly
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      # Install dependencies ──
+      # WHY: @coral-xyz/anchor, @solana/web3.js, @solana/spl-token, ts-node
+      #      are all needed to build and send the claim_vault transaction
+      - name: Install dependencies
+        run: npm install
+
+      # Check Anchor build artifacts exist ──
+      # WHY: keeper.ts loads the IDL from target/idl/proof_pol.json
+      #      If the IDL is missing, the bot cannot build the transaction
+      - name: Check IDL exists
+        run: |
+          if [ ! -f "target/idl/proof_pol.json" ]; then
+            echo "ERROR: target/idl/proof_pol.json not found."
+            echo "The IDL must be committed to the repository."
+            echo "Run: anchor build  →  commit target/idl/ and target/types/"
+            exit 1
+          fi
+          echo "IDL found: target/idl/proof_pol.json"
+
+      #  Print keeper wallet address ──
+      # WHY: Useful for debugging — confirm the right wallet is being used
+      #      Does NOT print the private key (only the public key is shown)
+      - name: Show keeper wallet address
+        env:
+          KEEPER_KEYPAIR: ${{ secrets.KEEPER_KEYPAIR }}
+        run: |
+          node -e "
+            const { Keypair } = require('@solana/web3.js');
+            const arr = JSON.parse(process.env.KEEPER_KEYPAIR);
+            const kp = Keypair.fromSecretKey(Uint8Array.from(arr));
+            console.log('Keeper wallet:', kp.publicKey.toBase58());
+          "
+
+      #  Run the keeper bot ──
+      # WHY: CI=true is set automatically by GitHub Actions.
+      #      The keeper detects this and exits after one scan (no setInterval).
+      #      KEEPER_KEYPAIR comes from the GitHub Secret you added in setup.
+      - name: Run keeper — scan and claim expired vaults
+        env:
+          KEEPER_KEYPAIR: ${{ secrets.KEEPER_KEYPAIR }}
+          RPC_URL: ${{ secrets.RPC_URL || 'https://api.devnet.solana.com' }}
+          CI: "true"
+        run: npx ts-node keeper/keeper.ts
+
+      - name: Done
+        run: echo "Keeper run complete. Check logs above for claimed vaults."

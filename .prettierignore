@@ -1,7 +1,8 @@
-.anchor
-.DS_Store
-target
-node_modules
-dist
-build
-test-ledger
+**/.next
+client/generated/js
+frontend/src/lib/proof-pol/accounts
+frontend/src/lib/proof-pol/errors
+frontend/src/lib/proof-pol/instructions
+frontend/src/lib/proof-pol/programs
+frontend/src/lib/proof-pol/shared
+frontend/src/lib/proof-pol/index.ts
