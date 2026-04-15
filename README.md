@@ -245,6 +245,51 @@ Exact struct layouts and bumps are defined in the Anchor program; the IDL and Co
 
 ---
 
+## Roadmap and future work
+
+This section is intentionally **high level**. Priorities change with audits, partners, and how much value sits in vaults.
+
+### Summary
+
+| Direction | Notes |
+|-----------|--------|
+| **Mainnet** | Deploy the `mainnet` feature build only after Kamino account sets and CPI ordering are re-verified on live programs; use dedicated RPC and multisig (or timelock) for upgrade authority. |
+| **Safety and ops** | Focused program review or audit before meaningful TVL; keeper monitoring, alerts, and runbooks; document account layout upgrades so clusters do not mix incompatible vault sizes. |
+| **Product** | Clearer onboarding and risk copy; optional indexer or cache for dashboards at scale; mobile-friendly flows. |
+| **Automation** | Harden keeper (retries, metrics); optional companion browser tooling that **orchestrates** txs while signing stays in the user’s wallet—policy remains on-chain. |
+
+
+### Product & protocol
+
+- **Multi‑vault per owner** — one profile, many mints / strategies via `vault_id` (e.g. USDC vault, SOL vault).
+- **Vault templates (“strategies”)** — presets for interval, grace, yield on/off, and copy tuned for use cases (family, team treasury, founder-style accountability metaphors).
+- **Split or ranked nominees** — fixed % to multiple wallets, or primary + backup with explicit rules.
+- **Nominee payout preferences** — optional payout address vs on-chain nominee; nominee-signed updates where safe.
+- **Basket vaults** — one commitment PDA holding **multiple SPL ATAs** with one coordinated claim path.
+- **Time-locks & recovery windows** — extra delay after a missed deadline before the nominee can execute; optional owner “panic extend” with caps.
+- **Read-only delegation** — watchers / accountants see status without signing power.
+
+### Automation & decentralized scheduling
+
+- **Decentralized / credibly neutral automation** — incentive layer for claim executors (tips, ordering rules, or integration with **Clockwork**, **cron-style networks**, or **keeper marketplaces**) so execution is not only a single hosted bot.
+- **On-chain “job” registry** — vaults surface next `claimable_at`; anyone (or specialized bots) competes to execute.
+- **Push notifications / webhooks** — off-chain indexer → email, Telegram, mobile push (no custody of user keys).
+- **Calendar & ICS export** — “next proof due” in normal productivity tools.
+
+### Trust, safety & compliance posture
+
+- **Formal spec + threat model** — written for auditors and power users.
+- **Bug bounty / audit pipeline** — staged before high TVL mainnet.
+- **Upgrade policy** — multisig, timelock, user-visible changelog.
+- **Insurance or risk partners** — exploratory, if the category matures.
+
+### Data & UX
+
+- **Indexer / subgraph-style API** — fast dashboards and “upcoming claims” at scale.
+- **Mobile-first PWA** — proof-of-life from a phone without building a full wallet.
+- **Simulator** — “if I miss N check-ins, nominee receives funds at time T” before the user commits funds.
+
+
 ## Further reading
 
 - **Codama:** [github.com/codama-idl/codama](https://github.com/codama-idl/codama)  
