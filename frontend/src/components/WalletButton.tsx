@@ -23,7 +23,7 @@ export const WalletButton: FC = () => {
   const { connected, publicKey } = useWallet();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3" data-wallet-toolbar>
       {connected && publicKey && (
         <span className="text-xs font-mono text-stone-500 bg-stone-100 px-2.5 py-1 rounded-md">
           {publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}
