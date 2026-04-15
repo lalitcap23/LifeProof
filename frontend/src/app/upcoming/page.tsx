@@ -61,8 +61,8 @@ const ROADMAP = [
     status: "upcoming",
     items: [
       {
-        title: "LifeProof Wallet (Full Extension)",
-        desc: "A full-fledged Solana wallet as a browser extension — native to LifeProof, not a thin layer on Phantom. Countdowns, notifications, one-click proof of life, vault creation, and transfers in one toolbar. Solves the huge community problem: people forget to open dApps and miss check-ins; this puts the protocol where they already work every day.",
+        title: "Browser Companion (thin extension)",
+        desc: "A lightweight extension that works with Phantom, Solflare, or Backpack — not a new wallet. Deadline countdown on the icon, optional reminders, and deep links into LifeProof so check-ins are one click away. Your keys stay in the wallet you already trust.",
         tag: "UPCOMING",
         highlight: true,
       },
@@ -153,11 +153,11 @@ export default function UpcomingPage() {
                 <span className="text-amber-500">Coming</span>
               </h1>
               <p className="text-base text-stone-400 leading-relaxed max-w-lg">
-                LifeProof is in active development — from the keeper network that automatically
-                executes claims, to a{" "}
-                <span className="text-stone-200 font-semibold">full-fledged wallet extension</span>{" "}
-                built for this community: one place for custody, check-ins, and vaults so nobody
-                loses a stake because they forgot to open a dApp.
+                LifeProof is in active development — from redundant keepers and permissionless
+                claims, to a{" "}
+                <span className="text-stone-200 font-semibold">thin browser companion</span>{" "}
+                and reminders that work with the wallets people already use — so deadlines are
+                visible and check-ins are harder to forget, without taking custody of keys.
               </p>
             </div>
 
@@ -175,7 +175,7 @@ export default function UpcomingPage() {
                 {[
                   { phase: "Phase 1", label: "Commitment vaults, keeper, dashboard", status: "✓ live" , c: "text-green-400" },
                   { phase: "Phase 2", label: "Kamino yield + mainnet deployment",     status: "⚡ in progress", c: "text-amber-400" },
-                  { phase: "Phase 3", label: "Full wallet extension + mobile app",     status: "· upcoming", c: "text-stone-500" },
+                  { phase: "Phase 3", label: "Browser companion + mobile + multi-asset", status: "· upcoming", c: "text-stone-500" },
                   { phase: "Phase 4", label: "Cross-chain + legal wrapper + zkProof", status: "· research", c: "text-stone-600" },
                 ].map((row) => (
                   <div key={row.phase} className="flex gap-3">
@@ -359,12 +359,12 @@ export default function UpcomingPage() {
         </div>
       </section>
 
-      {/* ── Highlighted upcoming: Wallet Extension ── */}
+      {/* ── Highlighted upcoming: habit + execution layer ── */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-baseline gap-3 mb-12">
             <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase">Most Requested</span>
-            <h2 className="text-3xl font-bold text-stone-900 tracking-tight">Full-Fledged Wallet (Extension)</h2>
+            <h2 className="text-3xl font-bold text-stone-900 tracking-tight">Habit layer & decentralized execution</h2>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-5">
@@ -376,20 +376,22 @@ export default function UpcomingPage() {
                 </span>
               </div>
               <h3 className="text-xl font-bold text-white mb-3 tracking-tight">
-                Built for the community problem: habit, not hype
+                Meet people where they already work — without a new wallet
               </h3>
               <p className="text-stone-400 text-sm leading-relaxed mb-7">
-                A complete LifeProof wallet in the browser — custody, vaults, proof of life, and nominee
-                awareness without bouncing between Phantom and a tab you forgot about. That&apos;s how
-                we scale real usage: make the dead man&apos;s switch as easy as unlocking your laptop,
-                so the protocol works for normal people, not only power users.
+                A thin browser companion talks to Phantom, Solflare, or Backpack: countdown on the
+                toolbar icon, optional reminders, and deep links into LifeProof so{" "}
+                <code className="text-amber-400/90 text-[11px]">proof_of_life</code> is a short path,
+                not a bookmark you forget. Separately, we want credibly neutral automation: an open
+                executor layer and optional on-chain scheduling so claims are not tied to a single
+                GitHub cron forever.
               </p>
               <div className="grid sm:grid-cols-2 gap-5">
                 {[
-                  { icon: "🔐", title: "Full wallet in one extension", desc: "Keys, signing, and LifeProof flows together — no separate wallet app required for day-to-day check-ins." },
-                  { icon: "⏱", title: "Live deadline countdown", desc: "Persistent badge on the extension icon showing time remaining before your next check-in is due." },
-                  { icon: "🔔", title: "Push notifications", desc: "Browser alerts at 24h, 6h, and 1h before your deadline. You choose the thresholds." },
-                  { icon: "⚡", title: "One-click proof of life", desc: "Sign `proof_of_life` directly from the extension popup — no navigation, no dApp, no friction." },
+                  { icon: "🧩", title: "Companion, not custody", desc: "No LifeProof-controlled keyring — signing stays in your existing wallet; the extension is reminders + routing." },
+                  { icon: "⏱", title: "Deadline on the icon", desc: "At-a-glance time-to-next check-in from the extension badge so the protocol stays visible." },
+                  { icon: "🔔", title: "Reminders & calendar", desc: "Browser nudges plus optional ICS export so “proof due” shows up next to the rest of your life." },
+                  { icon: "🤖", title: "Open executor market", desc: "Incentivized keepers, job hints on-chain, and integrations with scheduling networks — redundancy beyond one bot." },
                 ].map((f) => (
                   <div key={f.title} className="flex gap-3">
                     <span className="text-lg shrink-0">{f.icon}</span>
@@ -406,9 +408,9 @@ export default function UpcomingPage() {
               <div className="bg-white border border-amber-200 rounded-xl p-5 shadow-sm shadow-amber-50">
                 <p className="text-[10px] font-bold text-amber-600 tracking-widest uppercase mb-3">Why it matters</p>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  The huge community gap is friction and forgetfulness — not trust in the chain.
-                  A full extension wallet removes that gap by meeting users in the browser with
-                  everything they need in one product.
+                  Most missed check-ins are attention and habit, not malice. A thin companion plus
+                  calendar-aware nudges shrinks that gap while keeping policy on-chain and keys in
+                  wallets users already audit and trust.
                 </p>
               </div>
               <div className="bg-white border border-stone-200 rounded-xl p-5">
@@ -419,11 +421,11 @@ export default function UpcomingPage() {
                 </p>
               </div>
               <div className="bg-white border border-stone-200 rounded-xl p-5">
-                <p className="text-[10px] font-bold text-stone-400 tracking-widest uppercase mb-3">Open Contribution</p>
+                <p className="text-[10px] font-bold text-stone-400 tracking-widest uppercase mb-3">Open contribution</p>
                 <p className="text-sm text-stone-600 leading-relaxed">
-                  Both the extension and mobile app will be fully open source.
-                  Contributions welcome — a dead man&apos;s switch works best when the code
-                  is transparent.
+                  Companion, mobile, and keeper-side tooling are intended to stay open source so
+                  anyone can improve reminders, bots, or integrations — transparent code for a
+                  transparent protocol.
                 </p>
               </div>
             </div>

@@ -288,7 +288,7 @@ This section is intentionally **high level**. Priorities change with audits, par
 - **Indexer / subgraph-style API** — fast dashboards and “upcoming claims” at scale.
 - **Mobile-first PWA** — proof-of-life from a phone without building a full wallet.
 - **Simulator** — “if I miss N check-ins, nominee receives funds at time T” before the user commits funds.
-
+in
 
 ## Further reading
 
