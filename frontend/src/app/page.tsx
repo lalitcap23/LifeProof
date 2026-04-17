@@ -381,7 +381,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-baseline gap-3 mb-14">
             <span className="text-[10px] font-bold text-amber-600 tracking-widest uppercase">05 / Roadmap</span>
-            <h2 className="text-3xl font-bold text-stone-900 tracking-tight">Full-Fledged Wallet (Extension)</h2>
+            <h2 className="text-3xl font-bold text-stone-900 tracking-tight">Browser Companion (thin extension)</h2>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
@@ -395,18 +395,16 @@ export default function Home() {
                 Solves the biggest community problem: forgetting to check in
               </h3>
               <p className="text-stone-400 text-sm leading-relaxed mb-6">
-                A full LifeProof wallet as a browser extension — not just a companion to another wallet.
-                Native custody, vault creation, proof of life, and nominee flows in one place. That removes
-                the friction that kills most dead man&apos;s switches: opening a dApp, connecting Phantom,
-                finding the right page. When checking in is one tap from the toolbar, the whole community
-                gets a protocol they can actually rely on day to day.
+                A lightweight extension that works with Phantom, Solflare, or Backpack — not a new wallet.
+                Deadline countdown on the icon, optional reminders, and deep links into LifeProof so
+                check-ins are one click away. Your keys stay in the wallet you already trust.
               </p>
               <div className="grid sm:grid-cols-2 gap-4">
                 {[
-                  { label: "Full wallet in the extension", desc: "Create vaults, hold keys, sign SOL and SPL txs — LifeProof-native UX without juggling multiple apps" },
-                  { label: "Deadline countdown", desc: "Persistent badge on the extension icon showing your next check-in deadline" },
-                  { label: "Push notifications", desc: "Browser alerts 24h, 6h, and 1h before your deadline expires" },
-                  { label: "One-click proof of life", desc: "Sign `proof_of_life` from the popup — no separate dApp tab" },
+                  { label: "Works with your existing wallet", desc: "Compatible with Phantom, Solflare, and Backpack — no new seed phrase, no custody change" },
+                  { label: "Deadline countdown badge", desc: "Persistent badge on the extension icon shows how much time remains until your next check-in" },
+                  { label: "Optional reminders", desc: "Browser alerts 24h, 6h, and 1h before your deadline expires — opt in, zero spam" },
+                  { label: "One-click proof of life", desc: "Deep links open the right LifeProof page instantly — check in without hunting for the dApp" },
                 ].map((f) => (
                   <div key={f.label} className="flex gap-3">
                     <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 shrink-0" />
@@ -425,8 +423,8 @@ export default function Home() {
                 <p className="text-[10px] font-bold text-amber-600 tracking-widest uppercase mb-3">Why it matters</p>
                 <p className="text-sm text-stone-600 leading-relaxed">
                   The community problem isn&apos;t the smart contract — it&apos;s human habit.
-                  A full-fledged extension wallet puts LifeProof where people already live (the browser),
-                  so proof of life stops being a chore and becomes a habit the whole ecosystem can adopt.
+                  A thin companion sitting in the toolbar makes check-ins frictionless without asking
+                  anyone to trust a new wallet or move their keys. Low barrier, high reliability.
                 </p>
               </div>
               <div className="bg-white border border-stone-200 rounded-xl p-6">
