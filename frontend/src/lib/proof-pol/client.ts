@@ -191,11 +191,20 @@ export class ProofPolClient {
         const anchorLine = logs.find(
           (l) => l.includes("AnchorError") || l.includes("Error Number")
         );
-        throw new Error(
-          anchorLine
-            ? `Simulation failed: ${anchorLine}`
-            : `Simulation failed: ${JSON.stringify(simResult.value.err)}`
+        const tokenErrorLine = logs.find((l) =>
+          /insufficient funds|InsufficientFunds|Error: insufficient/i.test(l)
         );
+        const programErrorLine = logs
+          .reverse()
+          .find((l) => /Program log: Error/i.test(l));
+
+        const detail =
+          anchorLine ??
+          tokenErrorLine ??
+          programErrorLine ??
+          JSON.stringify(simResult.value.err);
+
+        throw new Error(`Simulation failed: ${detail}`);
       }
     } catch (simErr: unknown) {
       const simMessage = getErrorMessage(simErr);
@@ -515,6 +524,52 @@ export class ProofPolClient {
 
     const mintPk = new PublicKey(params.mint);
     const ownerAtaPk = await getAssociatedTokenAddress(mintPk, this.publicKey);
+
+    // Pre-flight balance checks — surface clearer errors than the SPL Token
+    // program's opaque `Custom: 1` (InsufficientFunds) at simulation time.
+    const PLATFORM_FEE_USDC = BigInt(1_000_000); // 1 USDC (6 decimals)
+    const ownerUsdcAtaPk = await getAssociatedTokenAddress(
+      usdcMintPk,
+      this.publicKey
+    );
+
+    const [usdcBalance, stakeBalance] = await Promise.all([
+      this.connection
+        .getTokenAccountBalance(ownerUsdcAtaPk)
+        .then((r) => BigInt(r.value.amount))
+        .catch(() => BigInt(0)),
+      mintPk.equals(usdcMintPk)
+        ? Promise.resolve<bigint | null>(null)
+        : this.connection
+            .getTokenAccountBalance(ownerAtaPk)
+            .then((r) => BigInt(r.value.amount))
+            .catch(() => BigInt(0)),
+    ]);
+
+    if (usdcBalance < PLATFORM_FEE_USDC) {
+      throw new Error(
+        `Insufficient USDC for the 1 USDC platform fee (have ${
+          Number(usdcBalance) / 1_000_000
+        } USDC). Fund your wallet with USDC and try again.`
+      );
+    }
+
+    if (mintPk.equals(usdcMintPk)) {
+      // Stake is also USDC — the fee comes from the same ATA.
+      if (usdcBalance < PLATFORM_FEE_USDC + params.stakeAmount) {
+        throw new Error(
+          `Insufficient USDC: need ${
+            Number(PLATFORM_FEE_USDC + params.stakeAmount) / 1_000_000
+          } USDC (stake + 1 USDC fee), have ${
+            Number(usdcBalance) / 1_000_000
+          }.`
+        );
+      }
+    } else if (stakeBalance !== null && stakeBalance < params.stakeAmount) {
+      throw new Error(
+        `Insufficient stake-token balance: need ${params.stakeAmount.toString()} raw units, have ${stakeBalance.toString()}.`
+      );
+    }
     
     // Get Kamino accounts (dummies on devnet, real on mainnet)
     const kaminoAccounts = await this.getKaminoAccounts(mintPk, vaultPda, ownerAtaPk);
