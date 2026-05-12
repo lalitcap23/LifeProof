@@ -428,7 +428,7 @@ export default function KeeperPage() {
                 <p className="text-[10px] font-bold text-amber-500 tracking-widest uppercase mb-3">Why the caller gets rent</p>
                 <p className="text-sm text-stone-400 leading-relaxed">
                   When an account is closed on Solana, its rent is returned to a specified recipient.
-                  LifeProof directs the <code className="bg-stone-800 px-1 rounded text-amber-400">vault_ata</code> rent
+                  Aegis Vault directs the <code className="bg-stone-800 px-1 rounded text-amber-400">vault_ata</code> rent
                   to the caller (keeper). This covers the gas cost of the transaction and any ATA creation fees —
                   making each execution economically neutral or profitable.
                 </p>

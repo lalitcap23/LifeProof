@@ -40,11 +40,6 @@ export type ProofPol = {
         },
         {
           "name": "nominee",
-          "docs": [
-            "Must be `mut` — receives lamports from:",
-            "1. `close = nominee` on the vault PDA account",
-            "2. `close_account { destination: nominee }` on vault_ata"
-          ],
           "writable": true,
           "relations": [
             "vault"
@@ -1536,24 +1531,6 @@ export type ProofPol = {
   "types": [
     {
       "name": "commitmentVault",
-      "docs": [
-        "Layout (approximate byte budget):",
-        "discriminator    8",
-        "owner           32",
-        "nominee         32",
-        "mint            32  ← SPL token mint being staked",
-        "stake_amount     8  (raw token units – informational snapshot)",
-        "checkin_interval 8  (seconds between required check-ins)",
-        "last_checkin     8  (Unix timestamp of last proof-of-life tx)",
-        "deadline         8  (Unix timestamp after which nominee can claim)",
-        "is_active        1  (vault is live; false after close or claim)",
-        "yield_deposited  1  (true = tokens are in Kamino; false = held in vault ATA)",
-        "k_token_mint    32  (Kamino collateral/receipt token mint, or default on devnet)",
-        "k_token_amount   8  (kTokens held; 0 on devnet)",
-        "bump             1",
-        "_padding         5",
-        "Total ≈ 185 bytes (auto-calculated via INIT_SPACE)"
-      ],
       "type": {
         "kind": "struct",
         "fields": [
@@ -1571,17 +1548,10 @@ export type ProofPol = {
           },
           {
             "name": "mint",
-            "docs": [
-              "Used to validate the correct token accounts are passed on claim/close."
-            ],
             "type": "pubkey"
           },
           {
             "name": "stakeAmount",
-            "docs": [
-              "Actual tokens live in the vault's Associated Token Account (ATA)",
-              "on devnet, or inside Kamino on mainnet."
-            ],
             "type": "u64"
           },
           {
@@ -1594,10 +1564,6 @@ export type ProofPol = {
           },
           {
             "name": "deadline",
-            "docs": [
-              "Unix timestamp after which the nominee may claim.",
-              "Recalculated as `last_checkin + checkin_interval` on every proof-of-life."
-            ],
             "type": "i64"
           },
           {

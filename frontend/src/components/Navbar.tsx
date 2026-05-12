@@ -13,7 +13,7 @@ export const Navbar: FC = () => {
             <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs tracking-tight">LP</span>
             </div>
-            <span className="text-xl font-bold text-stone-900 tracking-tight">LifeProof</span>
+            <span className="text-xl font-bold text-stone-900 tracking-tight">Aegis Vault</span>
           </Link>
 
           <div className="flex items-center gap-6">

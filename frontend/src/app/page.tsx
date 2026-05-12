@@ -158,7 +158,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-10 items-start">
             <div className="space-y-6">
               <p className="text-stone-400 leading-relaxed">
-                On mainnet, every token deposited into LifeProof is automatically routed into{" "}
+                On mainnet, every token deposited into Aegis Vault is automatically routed into{" "}
                 <span className="text-amber-400 font-semibold">Kamino Finance</span> — Solana&apos;s
                 largest lending protocol. Your vault doesn&apos;t just sit idle. It earns.
               </p>
@@ -396,7 +396,7 @@ export default function Home() {
               </h3>
               <p className="text-stone-400 text-sm leading-relaxed mb-6">
                 A lightweight extension that works with Phantom, Solflare, or Backpack — not a new wallet.
-                Deadline countdown on the icon, optional reminders, and deep links into LifeProof so
+                Deadline countdown on the icon, optional reminders, and deep links into Aegis Vault so
                 check-ins are one click away. Your keys stay in the wallet you already trust.
               </p>
               <div className="grid sm:grid-cols-2 gap-4">
@@ -404,7 +404,7 @@ export default function Home() {
                   { label: "Works with your existing wallet", desc: "Compatible with Phantom, Solflare, and Backpack — no new seed phrase, no custody change" },
                   { label: "Deadline countdown badge", desc: "Persistent badge on the extension icon shows how much time remains until your next check-in" },
                   { label: "Optional reminders", desc: "Browser alerts 24h, 6h, and 1h before your deadline expires — opt in, zero spam" },
-                  { label: "One-click proof of life", desc: "Deep links open the right LifeProof page instantly — check in without hunting for the dApp" },
+                  { label: "One-click proof of life", desc: "Deep links open the right Aegis Vault page instantly — check in without hunting for the dApp" },
                 ].map((f) => (
                   <div key={f.label} className="flex gap-3">
                     <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 shrink-0" />
@@ -530,7 +530,7 @@ export default function Home() {
             <div className="w-7 h-7 bg-amber-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs">LP</span>
             </div>
-            <span className="text-sm font-bold text-stone-900">LifeProof</span>
+            <span className="text-sm font-bold text-stone-900">Aegis Vault</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-stone-400">
             {["Open Source", "No Admin Key", "Permissionless", "Built on Solana"].map((t) => (

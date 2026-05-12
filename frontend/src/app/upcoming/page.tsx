@@ -62,7 +62,7 @@ const ROADMAP = [
     items: [
       {
         title: "Browser Companion (thin extension)",
-        desc: "A lightweight extension that works with Phantom, Solflare, or Backpack — not a new wallet. Deadline countdown on the icon, optional reminders, and deep links into LifeProof so check-ins are one click away. Your keys stay in the wallet you already trust.",
+        desc: "A lightweight extension that works with Phantom, Solflare, or Backpack — not a new wallet. Deadline countdown on the icon, optional reminders, and deep links into Aegis Vault so check-ins are one click away. Your keys stay in the wallet you already trust.",
         tag: "UPCOMING",
         highlight: true,
       },
@@ -91,7 +91,7 @@ const ROADMAP = [
     items: [
       {
         title: "Cross-Chain Vaults",
-        desc: "Extend LifeProof to EVM chains via Wormhole or LayerZero. A Solana vault can have a nominee on Ethereum or Arbitrum.",
+        desc: "Extend Aegis Vault to EVM chains via Wormhole or LayerZero. A Solana vault can have a nominee on Ethereum or Arbitrum.",
         tag: "RESEARCH",
       },
       {
@@ -153,7 +153,7 @@ export default function UpcomingPage() {
                 <span className="text-amber-500">Coming</span>
               </h1>
               <p className="text-base text-stone-400 leading-relaxed max-w-lg">
-                LifeProof is in active development — from redundant keepers and permissionless
+                Aegis Vault is in active development — from redundant keepers and permissionless
                 claims, to a{" "}
                 <span className="text-stone-200 font-semibold">thin browser companion</span>{" "}
                 and reminders that work with the wallets people already use — so deadlines are
@@ -272,7 +272,7 @@ export default function UpcomingPage() {
           <div className="grid lg:grid-cols-2 gap-10 items-start">
             <div className="space-y-5">
               <p className="text-stone-400 leading-relaxed text-sm">
-                LifeProof is designed so that{" "}
+                Aegis Vault is designed so that{" "}
                 <span className="text-white font-semibold">no single point of failure</span>{" "}
                 can prevent a nominee from receiving their funds. The execution guarantee works in layers:
               </p>
@@ -380,7 +380,7 @@ export default function UpcomingPage() {
               </h3>
               <p className="text-stone-400 text-sm leading-relaxed mb-7">
                 A thin browser companion talks to Phantom, Solflare, or Backpack: countdown on the
-                toolbar icon, optional reminders, and deep links into LifeProof so{" "}
+                toolbar icon, optional reminders, and deep links into Aegis Vault so{" "}
                 <code className="text-amber-400/90 text-[11px]">proof_of_life</code> is a short path,
                 not a bookmark you forget. Separately, we want credibly neutral automation: an open
                 executor layer and optional on-chain scheduling so claims are not tied to a single
@@ -388,7 +388,7 @@ export default function UpcomingPage() {
               </p>
               <div className="grid sm:grid-cols-2 gap-5">
                 {[
-                  { icon: "🧩", title: "Companion, not custody", desc: "No LifeProof-controlled keyring — signing stays in your existing wallet; the extension is reminders + routing." },
+                  { icon: "🧩", title: "Companion, not custody", desc: "No Aegis Vault-controlled keyring — signing stays in your existing wallet; the extension is reminders + routing." },
                   { icon: "⏱", title: "Deadline on the icon", desc: "At-a-glance time-to-next check-in from the extension badge so the protocol stays visible." },
                   { icon: "🔔", title: "Reminders & calendar", desc: "Browser nudges plus optional ICS export so “proof due” shows up next to the rest of your life." },
                   { icon: "🤖", title: "Open executor market", desc: "Incentivized keepers, job hints on-chain, and integrations with scheduling networks — redundancy beyond one bot." },
@@ -440,7 +440,7 @@ export default function UpcomingPage() {
             <div className="w-7 h-7 bg-amber-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs">LP</span>
             </div>
-            <span className="text-sm font-bold text-stone-900">LifeProof</span>
+            <span className="text-sm font-bold text-stone-900">Aegis Vault</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-stone-400">
             {["Open Source", "No Admin Key", "Permissionless", "Built on Solana"].map((t) => (

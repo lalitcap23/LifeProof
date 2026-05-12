@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LifeProof - Commitment Staking Protocol",
+  title: "Aegis Vault - Commitment Staking Protocol",
   description:
     "Stake SOL and prove you're alive. If you miss check-ins, your nominee can claim your stake.",
 };
