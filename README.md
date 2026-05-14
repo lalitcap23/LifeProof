@@ -269,6 +269,13 @@ This section is intentionally **high level**. Priorities change with audits, par
 - **Time-locks & recovery windows** — extra delay after a missed deadline before the nominee can execute; optional owner “panic extend” with caps.
 - **Read-only delegation** — watchers / accountants see status without signing power.
 
+### Yield & composability
+
+- **Strategy router beyond Kamino** — pluggable yield adapters (Marginfi, Drift, Jupiter Lend, Solend) selectable per vault at initialization. The same raw-CPI pattern used for Kamino generalizes to a thin adapter layer, so vaults stop being a "Kamino wrapper" and become a non-custodial, yield-bearing commitment primitive with the user picking the venue.
+- **Auto-compound vs. live yield stream** — at vault creation the owner picks how earned yield behaves: **compound** back into principal (default), **stream to the nominee in real time** (a recurring allowance that automatically converts to full inheritance on a missed proof), or **route to a third address** (charity, DAO treasury, co-signer). The "stream while alive, lump on death" mode turns LifeProof into both inheritance *and* programmable allowance infrastructure with one PDA.
+- **Yield-only claim** — let a designated address (e.g. a child, a contributor) claim accrued yield on a schedule without ever touching principal, so the owner can use a vault as a self-custodial trust fund.
+- **Strategy migration** — owners can move a live vault between strategies (e.g. Kamino → Marginfi) without breaking the proof-of-life schedule, so changing venues never resets the inheritance clock.
+
 ### Automation & decentralized scheduling
 
 - **Decentralized / credibly neutral automation** — incentive layer for claim executors (tips, ordering rules, or integration with **Clockwork**, **cron-style networks**, or **keeper marketplaces**) so execution is not only a single hosted bot.
